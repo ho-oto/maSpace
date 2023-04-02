@@ -19,8 +19,8 @@
 | $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `#sqrt 2`, `#sqrt[2]`
 | $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `"abc"`
 | $\hat a$ | `\hat a` | `hat a` | `â`, `#hat a`, `"\hat a"L`, `a.hat`
-| $\#$ | `\#` | `#` | `##`, `"\#"L`
-| $\text{a"b"c\#"}$ | `\text{a"b"c\#"}` || `#="a"b"c#""=#`
+| $\\\#$ | `\#` | `#` | `##`, `"\#"L`
+| $\text{a"b"c\\\#"}$ | `\text{a"b"c\#"}` || `#="a"b"c#""=#`
 | $\mathbf{abc}$ | `\mathbf{abc}` | `bb"abc"` | `"abc"bb`, `#"abc"#bb`
 | $(a)$ | `(a)` | `(a)`
 
