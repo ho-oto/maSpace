@@ -26,27 +26,40 @@
 ## Lexer
 
 1. NFD normalization
-2. tokenize
-3. insert virtual cat⁰ between connected symbols with no spaces
-4. transform unicode_sub and unicode_sup
+2. remove leading and trailing spaces
+3. tokenize
+4. insert virtual cat⁰ between connected symbols with no spaces
+5. transform unicode_sub and unicode_sup to ASCII
 
 ### Tokens
 
 - catᵒᵒ: `[ ]+`
-- subᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}_[ ]{n}`
-- supᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}^[ ]{n}`
-- overᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}^^[ ]{n}`
-- underᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}__[ ]{n}`
-- fracᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}(/|∕|//|∕∕)[ ]{n}`
-- opᵐ
-  - rootᵐ: `(√|∛|∜|#sqrt|#root.[1-9][0-9]*)[ ]{m}`
-  - typeᵐ: `(#ord|#op|#bin|#rel|#open|#close|#punct)[ ]{n}`
-- open: `#[ #( #{ #< [ ( {`
-- close `#] #) #} #> ] ) }`
-- num: `[0-9]+(.[0-9]+)?`
+- subᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}_[ ]{j}`
+- supᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}\^[ ]{j}`
+- overᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}\^\^[ ]{j}`
+- underᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}__[ ]{j}`
+- fracᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}/[ ]{j}`
+- opⁱ
+  - rootⁱ: `(√|∛|∜|#sqrt|#root\.[1-9][0-9]*)[ ]{i}`
+  - typeⁱ: `(#ord|#op|#bin|#rel|#open|#close|#punct)[ ]{i}`
+- open:
+  - visible: `#[ #< #<| #<|| #<‖ ( { ⟨ ⌈ ⌊ ⎰ ⌜ ⌞ ⟦`
+  - invisible: `[`
+- close:
+  - visible: `#] #> #>| #>|| #>‖ ) } ⟩ ⌉ ⌋ ⎱ ⌝ ⌟ ⟧`
+  - invisible: `]`
+- num: `[0-9]+(\.[0-9]+)?`
 - literal: `\"(?!\")\"[a-zA-Z]*` or `#(=*)\"(?!\"\1#)\"\1#[a-zA-Z]*` or `'(?!')'[a-zA-Z]*` or `#(=*)'(?!'\1#)'\1#[a-zA-Z]*`
-- symbol: `#[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
-- identifier: `(char)(accent)*`
+- symbol
+  - `//`
+  - `#[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
+  - `#/`
+  - `#||`
+  - `#<-`
+  - `#->`
+  - `#<=`
+  - `#>=`
+- identifier: `(#|#!)?(char)(accent)*(\.[A-Za-z0-9]+)*`
   - char: single Unicode character
     - ascii_symbols: `! $ % & ,  ; ? @`
     - alphabet: `[a-zA-Z]`
@@ -56,7 +69,7 @@
     - `Γ Δ Θ Λ Ξ Π Σ Υ Φ Ψ Ω α β γ δ ε ζ η θ ι κ λ μ ν ξ π ρ ς σ τ υ φ χ ψ ω ϑ ϕ ϖ ϝ ϱ ϵ`
     - `† ‡ … ℏ ℑ Ⅎ ℵ ℶ ℷ ℸ ⅁`
     - `← ↑ → ↓ ↔ ↕ ↖ ↗ ↘ ↙ ↞ ↠ ↢ ↣ ↦ ↩ ↪ ↫ ↬ ↭ ↰ ↱ ↶ ↷ ↺ ↻ ↼ ↽ ↾ ↿ ⇀ ⇁ ⇂ ⇃ ⇄ ⇆ ⇇ ⇈ ⇉ ⇊ ⇋ ⇌ ⇐ ⇑ ⇒ ⇓ ⇔ ⇕ ⇚ ⇛ ⇝ ⇠ ⇢`
-    - `∀ ∁ ∂ ∃ ∅ ∆ ∇ ∈ ∊ ∋ ∍ ∎ ∏ ∐ ∑ − ∓ ∔ ∖ ∗ ∘ ∙ ∝ ∞ ∟ ∠ ∡ ∢ ∣ ∥ ∧ ∨ ∩ ∪ ∫ ∬ ∭ ∮ ∯ ∰ ∴ ∵`
+    - `∀ ∁ ∂ ∃ ∅ ∆ ∇ ∈ ∊ ∋ ∍ ∎ ∏ ∐ ∑ − ∓ ∔ ∕ ∖ ∗ ∘ ∙ ∝ ∞ ∟ ∠ ∡ ∢ ∣ ∥ ∧ ∨ ∩ ∪ ∫ ∬ ∭ ∮ ∯ ∰ ∴ ∵`
     - `∶ ∷ ∸ ∹ ∺ ∻ ∼ ∽ ≀ ≂ ≃ ≅ ≆ ≈ ≊ ≍ ≎ ≏ ≐ ≑ ≒ ≓ ≔ ≕ ≖ ≗ ≘ ≙ ≚ ≛ ≜ ≝ ≞ ≟ ≡ ≤ ≥ ≦ ≧ ≨ ≩ ≪ ≫ ≬ ≲ ≳ ≶ ≷ ≺ ≻ ≼ ≽ ≾ ≿ ⊂ ⊃ ⊆ ⊇ ⊊ ⊋ ⊎ ⊏ ⊐ ⊑ ⊒ ⊓ ⊔`
     - `⊕ ⊖ ⊗ ⊘ ⊙ ⊚ ⊛ ⊝ ⊞ ⊟ ⊠ ⊡ ⊢ ⊣ ⊤ ⊥ ⊦ ⊧ ⊨ ⊩ ⊪ ⊫ ⊲ ⊳ ⊴ ⊵ ⊶ ⊷ ⊸ ⊺ ⊻ ⊼ ⊽`
     - `⋀ ⋁ ⋂ ⋃ ⋄ ⋅ ⋆ ⋇ ⋈ ⋉ ⋊ ⋋ ⋌ ⋍ ⋎ ⋏ ⋐ ⋑ ⋒ ⋓ ⋔ ⋖ ⋗ ⋘ ⋙ ⋚ ⋛ ⋜ ⋝ ⋞ ⋟ ⋤ ⋥ ⋦ ⋧ ⋨ ⋩`
