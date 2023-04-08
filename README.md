@@ -32,7 +32,7 @@
 
 ### Tokens
 
-- catⁱⁿᶠ: `[ ]+`
+- catᵒᵒ: `[ ]+`
 - subᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}_[ ]{n}`
 - supᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}^[ ]{n}`
 - overᵐᵃˣ⁽ᵐ⁾⁽ⁿ⁾: `[ ]{m}^^[ ]{n}`
@@ -98,10 +98,10 @@
 ## Grammer
 
 ```ebnf
-maspace = mathⁱⁿᶠ;
+maspace = mathᵒᵒ;
 mathⁱ = exprⁱ, (catⁱ, exprⁱ)*;
 exprⁱ = intermediateⁱ, [fracⁱ, intermediateⁱ];
-intermediateⁱ = simpⁱ, [overⁱ simp], [underⁱ simp], [supⁱ simp], [subⁱ simp];
+intermediateⁱ = simpⁱ, [overⁱ simpⁱ], [underⁱ simpⁱ], [supⁱ simpⁱ], [subⁱ simpⁱ];
 simpⁱ = const | parened | unary_exprⁱ | mathⁱ⁻¹;
 unary_exprⁱ = opⁱ, simpⁱ⁻¹;
 parened = open, maspace, close;
