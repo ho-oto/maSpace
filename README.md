@@ -60,9 +60,9 @@
   - `#.>=.`
 - identifier: `(#|#!)?(char)(accent)*(\.[A-Za-z0-9]+)*`
   - char: single Unicode character
-    - ascii_symbols: `! $ % & ,  ; ? @ /`
-    - alphabet: `[a-zA-Z]`
-    - styled: `[𝐀-𝐙𝐚-𝐳𝟎-𝟗𝐴-𝑍𝑎-𝑧𝑨-𝒁𝒂-𝒛𝒜-𝒵𝔄-ℨ𝔞-𝔷𝔸-ℤ𝖠-𝖹𝖺-𝗓𝟢-𝟫𝗔-𝗭𝗮-𝘇𝟬-𝟵𝘈-𝘡𝘢-𝘻𝙰-𝚉𝚊-𝚣𝟶-𝟿𝕜]`
+    - `! $ % & ,  ; ? @`
+    - `[a-zA-Z]`
+    - `[𝐀-𝐙𝐚-𝐳𝟎-𝟗𝐴-𝑍𝑎-𝑧𝑨-𝒁𝒂-𝒛𝒜-𝒵𝔄-ℨ𝔞-𝔷𝔸-ℤ𝖠-𝖹𝖺-𝗓𝟢-𝟫𝗔-𝗭𝗮-𝘇𝟬-𝟵𝘈-𝘡𝘢-𝘻𝙰-𝚉𝚊-𝚣𝟶-𝟿𝕜]`
     - `* + - : < = > | ~`
     - `± × ð ÷`
     - `Γ Δ Θ Λ Ξ Π Σ Υ Φ Ψ Ω α β γ δ ε ζ η θ ι κ λ μ ν ξ π ρ ς σ τ υ φ χ ψ ω ϑ ϕ ϖ ϝ ϱ ϵ`
@@ -77,33 +77,25 @@
     - `⌢ ⌣ ◯ ⟵ ⟶ ⟷ ⟸ ⟹ ⟺ ⟼ ⨀`
     - `⨁ ⨂ ⨄ ⨆ ⨿ ⩴ ⩽ ⩾ ⪅ ⪆ ⪇ ⪈ ⪉ ⪊ ⪋ ⪌ ⪕ ⪖ ⪯ ⪰ ⪵ ⪶ ⪷ ⪸ ⪹ ⪺ ⫅ ⫆ ⫋ ⫌`
   - accent
-    - `Combining Grave Accent`
-    - `Combining Acute Accent`
-    - `Combining Circumflex Accent`
-    - `Combining Tilde`
-    - `Combining Macron`
-    - `Combining Overline`
-    - `Combining Breve`
-    - `Combining Dot Above`
-    - `Combining Diaeresis`
-    - `Combining Hook Above`
-    - `Combining Ring Above`
-    - `Combining Double Acute Accent`
-    - `Combining Caron`
-    - `Combining Candrabindu`
-    - `Combining Turned Comma Above`
-    - `Combining Comma Above Right`
-    - `Combining Left Angle Above`
-    - `Combining Palatalized Hook Below`
-    - `Combining Retroflex Hook Below`
-    - `Combining Cedilla`
-    - `Combining Ogonek`
-    - `Combining Bridge Below`
-    - `Combining Tilde Below`
-    - `Combining Low Line`
-    - `Combining Long Stroke Overlay`
-    - `Combining Long Solidus Overlay`
-    - `Combining Left Right Arrow Below`
+    - grave: `Combining Grave Accent`
+    - acute: `Combining Acute Accent`
+    - hat: `Combining Circumflex Accent`
+    - tilde: `Combining Tilde`
+    - bar: `Combining Macron`
+    - overbar: `Combining Overline`
+    - breve: `Combining Breve`
+    - dot: `Combining Dot Above`
+    - ddot: `Combining Diaeresis`
+    - ovhook: `Combining Hook Above`
+    - ocirc: `Combining Ring Above`
+    - H: `Combining Double Acute Accent`
+    - check: `Combining Caron`
+    - utilde: `Combining Tilde Below`
+    - underbar: `Combining Low Line`
+    - sout: `Combining Long Stroke Overlay`
+    - not: `Combining Long Solidus Overlay`
+    - underleftrightarrow: `Combining Left Right Arrow Below`
+  - `(#|#!)/(accent)*(\.[A-Za-z0-9]+)*`
 - unicode_sub: `₊₋₌₍₎₀₁₂₃₄₅₆₇₈₉ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓᵦᵧᵨᵩᵪ`
 - unicode_sup: `⁺⁻⁼⁽⁾⁰¹²³⁴⁵⁶⁷⁸⁹ᵃᵇᶜᵈᵉᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘʷˣʸᶻᵛᵝᵞᵟᵠᵡ`
 
