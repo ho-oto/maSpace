@@ -21,88 +21,26 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
 
     match c {
         // - ASCII
-        'A'..='Z' | 'a'..='z' => raw(c),
-        '!' | ',' | ';' | '?' | '@' | '*' | '+' | '-' | ':' | '<' | '=' | '>' | '|' => raw(c),
+        '!' => raw(c),
+        '"' | '#' => None,
         '$' | '%' | '&' => sym(c),
+        '\'' | '(' | ')' => None,
+        '*' | '+' | ',' | '-' | '.' => raw(c),
+        '/' => None,
+        '0'..='9' => None,
+        ':' | ';' | '<' | '=' | '>' | '?' | '@' => raw(c),
+        'A'..='Z' => raw(c),
+        '[' => None,
+        '\\' => sym("backslash"),
+        ']' | '^' | '_' | '`' => None,
+        'a'..='z' => raw(c),
+        '{' => None,
+        '|' => raw(c),
+        '}' => None,
         '~' => sym("sim"),
 
-        // - Styled alphabets
-        //   - Mathematical Bold
-        '𝐀'..='𝐙' => cmb("mathbf", shift(c, '𝐀', 'A')),
-        '𝐚'..='𝐳' => cmb("mathbf", shift(c, '𝐚', 'a')),
-        '𝟎'..='𝟗' => cmb("mathbf", shift(c, '𝟎', '0')),
-
-        //   - Mathematical Italic
-        '𝐴'..='𝑍' => cmb("mathit", shift(c, '𝐴', 'A')),
-        '𝑎'..='𝑧' => cmb("mathit", shift(c, '𝑎', 'a')),
-        'ℎ' => cmb("mathit", 'h'),
-
-        //   - Mathematical Bold Italic
-        '𝑨'..='𝒁' => cmb("bm", shift(c, '𝑨', 'A')),
-        '𝒂'..='𝒛' => cmb("bm", shift(c, '𝒂', 'a')),
-
-        //   - Mathematical Script
-        '𝒜'..='𝒵' => cmb("mathscr", shift(c, '𝒜', 'A')),
-        '𝒶'..='𝓏' => cmb("mathscr", shift(c, '𝒶', 'a')),
-        'ℬ' => cmb("mathscr", 'B'),
-        'ℰ' => cmb("mathscr", 'E'),
-        'ℱ' => cmb("mathscr", 'F'),
-        'ℋ' => cmb("mathscr", 'H'),
-        'ℐ' => cmb("mathscr", 'I'),
-        'ℒ' => cmb("mathscr", 'L'),
-        'ℳ' => cmb("mathscr", 'M'),
-        'ℛ' => cmb("mathscr", 'R'),
-        'ℯ' => cmb("mathscr", 'e'),
-        'ℊ' => cmb("mathscr", 'g'),
-        'ℴ' => cmb("mathscr", 'o'),
-
-        //   - Mathematical Bold Script
-        '𝓐'..='𝓩' => cmb2("bm", "mathscr", shift(c, '𝓐', 'A')),
-        '𝓪'..='𝔃' => cmb2("bm", "mathscr", shift(c, '𝓪', 'a')),
-
-        //   - Mathematical Fraktur
-        '𝔄'..='𝔜' => cmb("mathfrak", shift(c, '𝔄', 'A')),
-        '𝔞'..='𝔷' => cmb("mathfrak", shift(c, '𝔞', 'a')),
-        'ℭ' => cmb("mathfrak", 'C'),
-        'ℌ' => cmb("mathfrak", 'H'),
-        'ℑ' => cmb("mathfrak", 'I'),
-        'ℜ' => cmb("mathfrak", 'R'),
-        'ℨ' => cmb("mathfrak", 'Z'),
-
-        //   - Mathematical Double-Struck
-        '𝔸'..='𝕐' => cmb("mathbb", shift(c, '𝔸', 'A')),
-        '𝕒'..='𝕫' => cmb("mathbb", shift(c, '𝕒', 'a')),
-        '𝟘'..='𝟡' => cmb("mathbb", shift(c, '𝟘', '0')),
-        'ℂ' => cmb("mathbb", 'C'),
-        'ℍ' => cmb("mathbb", 'H'),
-        'ℕ' => cmb("mathbb", 'N'),
-        'ℙ' => cmb("mathbb", 'P'),
-        'ℚ' => cmb("mathbb", 'Q'),
-        'ℝ' => cmb("mathbb", 'R'),
-        'ℤ' => cmb("mathbb", 'Z'),
-
-        //   - Mathematical Bold Fraktur => Mathematical Fraktur
-        '𝕬'..='𝖅' => cmb("mathfrak", shift(c, '𝕬', 'A')),
-        '𝖆'..='𝖟' => cmb("mathfrak", shift(c, '𝖆', 'a')),
-
-        //   - Mathematical Sans-Serif
-        '𝖠'..='𝖹' => cmb("mathsf", shift(c, '𝖠', 'A')),
-        '𝖺'..='𝗓' => cmb("mathsf", shift(c, '𝖺', 'a')),
-        '𝟢'..='𝟫' => cmb("mathsf", shift(c, '𝟢', '0')),
-        '𝗔'..='𝗭' => cmb("mathsf", shift(c, '𝗔', 'A')),
-        '𝗮'..='𝘇' => cmb("mathsf", shift(c, '𝗮', 'a')),
-        '𝘈'..='𝘡' => cmb("mathsf", shift(c, '𝘈', 'A')),
-        '𝘢'..='𝘻' => cmb("mathsf", shift(c, '𝘢', 'a')),
-        '𝘼'..='𝙕' => cmb("mathsf", shift(c, '𝘼', 'A')),
-        '𝙖'..='𝙯' => cmb("mathsf", shift(c, '𝙖', 'a')),
-        '𝟬'..='𝟵' => cmb("mathsf", shift(c, '𝟬', '0')),
-
-        //   - Mathematical Monospace
-        '𝙰'..='𝚉' => cmb("mathtt", shift(c, '𝙰', 'A')),
-        '𝚊'..='𝚣' => cmb("mathtt", shift(c, '𝚊', 'a')),
-        '𝟶'..='𝟿' => cmb("mathtt", shift(c, '𝟶', '0')),
-
         // - Greek alphabets
+        //   * capital
         'Α' => sym("Alpha"),
         'Β' => sym("Beta"),
         'Γ' => sym("Gamma"),
@@ -110,7 +48,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'Ε' => sym("Epsilon"),
         'Ζ' => sym("Zeta"),
         'Η' => sym("Eta"),
-        'Θ' | 'ϴ' => sym("Theta"),
+        'Θ' => sym("Theta"),
         'Ι' => sym("Iota"),
         'Κ' => sym("Kappa"),
         'Λ' => sym("Lambda"),
@@ -120,6 +58,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'Ο' => sym("Omicron"),
         'Π' => sym("Pi"),
         'Ρ' => sym("Rho"),
+        // '\u3a2' is unassigned
         'Σ' => sym("Sigma"),
         'Τ' => sym("Tau"),
         'Υ' => sym("Upsilon"),
@@ -127,6 +66,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'Χ' => sym("Chi"),
         'Ψ' => sym("Psi"),
         'Ω' => sym("Omega"),
+        //   * small
         'α' => sym("alpha"),
         'β' => sym("beta"),
         'γ' => sym("gamma"),
@@ -152,59 +92,150 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'χ' => sym("chi"),
         'ψ' => sym("psi"),
         'ω' => sym("omega"),
+        //   * variants
         'ϵ' => sym("epsilon"),
         'ϑ' => sym("vartheta"),
         'ϰ' => sym("varkappa"),
         'ϕ' => sym("phi"),
         'ϱ' => sym("varrho"),
         'ϖ' => sym("varpi"),
-        'ϝ' => sym("digamma"),
+        'ϝ' | 'Ϝ' => sym("digamma"), // Digamma -> digamma
+        'ϴ' => sym("Theta"),          // Theta Symbol -> Theta
 
-        //   - Italic
-        '𝛢'..='𝛲' => unicode_char_to_tex(shift(c, '𝛢', 'Α')),
-        '𝛳' => sym("Theta"),
-        '𝛴'..='𝛺' => unicode_char_to_tex(shift(c, '𝛴', 'Σ')),
-        '𝛼'..='𝜔' => unicode_char_to_tex(shift(c, '𝛼', 'α')),
-        '𝜖' => sym("epsilon"),
-        '𝜗' => sym("vartheta"),
-        '𝜘' => sym("varkappa"),
-        '𝜙' => sym("phi"),
-        '𝜚' => sym("varrho"),
-        '𝜛' => sym("varpi"),
+        // - Mathematical Alphanumeric Symbols (1D400-1D7FF)
+        //   - Alphabet
+        //     * Mathematical Bold
+        '𝐀'..='𝐙' => cmb("mathbf", shift(c, '𝐀', 'A')),
+        '𝐚'..='𝐳' => cmb("mathbf", shift(c, '𝐚', 'a')),
+        '𝟎'..='𝟗' => cmb("mathbf", shift(c, '𝟎', '0')),
 
-        //   - Bold
-        '𝚨'..='𝚸' => cmb("bm", unicode_char_to_tex(shift(c, '𝚨', 'Α'))?),
-        '𝜜'..='𝜬' => cmb("bm", unicode_char_to_tex(shift(c, '𝜜', 'Α'))?),
-        '𝝖'..='𝝦' => cmb("bm", unicode_char_to_tex(shift(c, '𝝖', 'Α'))?),
-        '𝞐'..='𝞠' => cmb("bm", unicode_char_to_tex(shift(c, '𝞐', 'Α'))?),
-        '𝚹' | '𝜭' | '𝝧' | '𝞡' => cmb("bm", sym("Theta")?),
-        '𝚺'..='𝛀' => cmb("bm", unicode_char_to_tex(shift(c, '𝚺', 'Σ'))?),
-        '𝜮'..='𝜴' => cmb("bm", unicode_char_to_tex(shift(c, '𝜮', 'Σ'))?),
-        '𝝨'..='𝝮' => cmb("bm", unicode_char_to_tex(shift(c, '𝝨', 'Σ'))?),
-        '𝞢'..='𝞨' => cmb("bm", unicode_char_to_tex(shift(c, '𝞢', 'Σ'))?),
-        '𝛂'..='𝛚' => cmb("bm", unicode_char_to_tex(shift(c, '𝛂', 'α'))?),
-        '𝜶'..='𝝎' => cmb("bm", unicode_char_to_tex(shift(c, '𝜶', 'α'))?),
-        '𝝰'..='𝞈' => cmb("bm", unicode_char_to_tex(shift(c, '𝝰', 'α'))?),
-        '𝞪'..='𝟂' => cmb("bm", unicode_char_to_tex(shift(c, '𝞪', 'α'))?),
-        '𝛜' | '𝝐' | '𝞊' | '𝟄' => cmb("bm", sym("epsilon")?),
-        '𝛝' | '𝝑' | '𝞋' | '𝟅' => cmb("bm", sym("vartheta")?),
-        '𝛞' | '𝝒' | '𝞌' | '𝟆' => cmb("bm", sym("varkappa")?),
-        '𝛟' | '𝝓' | '𝞍' | '𝟇' => cmb("bm", sym("phi")?),
-        '𝛠' | '𝝔' | '𝞎' | '𝟈' => cmb("bm", sym("varrho")?),
-        '𝛡' | '𝝕' | '𝞏' | '𝟉' => cmb("bm", sym("varpi")?),
-        '𝟋' => cmb("bm", sym("digamma")?),
+        //     * Mathematical Italic
+        '𝐴'..='𝑍' => cmb("mathit", shift(c, '𝐴', 'A')),
+        '𝑎'..='𝑧' => cmb("mathit", shift(c, '𝑎', 'a')),
+        'ℎ' => cmb("mathit", 'h'),
 
-        // - Syms
-        '𝛻' => sym("nabla"),
-        '𝜕' => sym("partial"),
-        '𝛁' | '𝜵' | '𝝯' | '𝞩' => cmb("bm", sym("nabla")?),
-        '𝛛' | '𝝏' | '𝞉' | '𝟃' => cmb("bm", sym("partial")?),
+        //     * Mathematical Bold Italic
+        '𝑨'..='𝒁' => cmb("bm", shift(c, '𝑨', 'A')),
+        '𝒂'..='𝒛' => cmb("bm", shift(c, '𝒂', 'a')),
+
+        //     * Mathematical Script
+        '𝒜'..='𝒵' => cmb("mathscr", shift(c, '𝒜', 'A')),
+        '𝒶'..='𝓏' => cmb("mathscr", shift(c, '𝒶', 'a')),
+        'ℬ' => cmb("mathscr", 'B'),
+        'ℰ' => cmb("mathscr", 'E'),
+        'ℱ' => cmb("mathscr", 'F'),
+        'ℋ' => cmb("mathscr", 'H'),
+        'ℐ' => cmb("mathscr", 'I'),
+        'ℒ' => cmb("mathscr", 'L'),
+        'ℳ' => cmb("mathscr", 'M'),
+        'ℛ' => cmb("mathscr", 'R'),
+        'ℯ' => cmb("mathscr", 'e'),
+        'ℊ' => cmb("mathscr", 'g'),
+        'ℴ' => cmb("mathscr", 'o'),
+
+        //     * Mathematical Bold Script
+        '𝓐'..='𝓩' => cmb("mathbfscr", shift(c, '𝓐', 'A')),
+        '𝓪'..='𝔃' => cmb("mathbfscr", shift(c, '𝓪', 'a')),
+
+        //     * Mathematical Fraktur
+        '𝔄'..='𝔜' => cmb("mathfrak", shift(c, '𝔄', 'A')),
+        '𝔞'..='𝔷' => cmb("mathfrak", shift(c, '𝔞', 'a')),
+        'ℭ' => cmb("mathfrak", 'C'),
+        'ℌ' => cmb("mathfrak", 'H'),
+        'ℑ' => cmb("mathfrak", 'I'),
+        'ℜ' => cmb("mathfrak", 'R'),
+        'ℨ' => cmb("mathfrak", 'Z'),
+
+        //     * Mathematical Double-Struck
+        '𝔸'..='𝕐' => cmb("mathbb", shift(c, '𝔸', 'A')),
+        '𝕒'..='𝕫' => cmb("mathbb", shift(c, '𝕒', 'a')),
+        '𝟘'..='𝟡' => cmb("mathbb", shift(c, '𝟘', '0')),
+        'ℂ' => cmb("mathbb", 'C'),
+        'ℍ' => cmb("mathbb", 'H'),
+        'ℕ' => cmb("mathbb", 'N'),
+        'ℙ' => cmb("mathbb", 'P'),
+        'ℚ' => cmb("mathbb", 'Q'),
+        'ℝ' => cmb("mathbb", 'R'),
+        'ℤ' => cmb("mathbb", 'Z'),
+
+        //     * Mathematical Bold Fraktur
+        '𝕬'..='𝖅' => cmb("mathbffrak", shift(c, '𝕬', 'A')),
+        '𝖆'..='𝖟' => cmb("mathbffrak", shift(c, '𝖆', 'a')),
+
+        //     * Mathematical Sans-Serif
+        '𝖠'..='𝖹' => cmb("mathsf", shift(c, '𝖠', 'A')),
+        '𝖺'..='𝗓' => cmb("mathsf", shift(c, '𝖺', 'a')),
+        '𝟢'..='𝟫' => cmb("mathsf", shift(c, '𝟢', '0')),
+
+        '𝗔'..='𝗭' => cmb("mathbfsf", shift(c, '𝗔', 'A')),
+        '𝗮'..='𝘇' => cmb("mathbfsf", shift(c, '𝗮', 'a')),
+        '𝟬'..='𝟵' => cmb("mathbfsf", shift(c, '𝟬', '0')),
+
+        '𝘈'..='𝘡' => cmb("mathsfit", shift(c, '𝘈', 'A')),
+        '𝘢'..='𝘻' => cmb("mathsfit", shift(c, '𝘢', 'a')),
+
+        '𝘼'..='𝙕' => cmb("mathbfsfit", shift(c, '𝘼', 'A')),
+        '𝙖'..='𝙯' => cmb("mathbfsfit", shift(c, '𝙖', 'a')),
+
+        //     * Mathematical Monospace
+        '𝙰'..='𝚉' => cmb("mathtt", shift(c, '𝙰', 'A')),
+        '𝚊'..='𝚣' => cmb("mathtt", shift(c, '𝚊', 'a')),
+        '𝟶'..='𝟿' => cmb("mathtt", shift(c, '𝟶', '0')),
+
+        //     * Dotless
         '𝚤' => sym("imath"),
-        'ı' => cmb("text", sym("i")?),
         '𝚥' => sym("jmath"),
-        'ȷ' => cmb("text", sym("j")?),
+
+        //   - Greek alphabets
+        //   ignore Bold/Italic style
+        '𝛢'..='𝛲' => unicode_char_to_tex(shift(c, '𝛢', 'Α')), // it
+        '𝚨'..='𝚸' => unicode_char_to_tex(shift(c, '𝚨', 'Α')), // bf
+        '𝜜'..='𝜬' => unicode_char_to_tex(shift(c, '𝜜', 'Α')), // bfit
+        '𝝖'..='𝝦' => unicode_char_to_tex(shift(c, '𝝖', 'Α')), // bfsf
+        '𝞐'..='𝞠' => unicode_char_to_tex(shift(c, '𝞐', 'Α')), // bfsfit
+
+        '𝛳' | '𝚹' | '𝜭' | '𝝧' | '𝞡' => sym("Theta"),
+
+        '𝛴'..='𝛺' => unicode_char_to_tex(shift(c, '𝛴', 'Σ')),
+        '𝚺'..='𝛀' => unicode_char_to_tex(shift(c, '𝚺', 'Σ')),
+        '𝜮'..='𝜴' => unicode_char_to_tex(shift(c, '𝜮', 'Σ')),
+        '𝝨'..='𝝮' => unicode_char_to_tex(shift(c, '𝝨', 'Σ')),
+        '𝞢'..='𝞨' => unicode_char_to_tex(shift(c, '𝞢', 'Σ')),
+
+        '𝛼'..='𝜔' => unicode_char_to_tex(shift(c, '𝛼', 'α')),
+        '𝛂'..='𝛚' => unicode_char_to_tex(shift(c, '𝛂', 'α')),
+        '𝜶'..='𝝎' => unicode_char_to_tex(shift(c, '𝜶', 'α')),
+        '𝝰'..='𝞈' => unicode_char_to_tex(shift(c, '𝝰', 'α')),
+        '𝞪'..='𝟂' => unicode_char_to_tex(shift(c, '𝞪', 'α')),
+
+        '𝜖' | '𝛜' | '𝝐' | '𝞊' | '𝟄' => sym("epsilon"),
+        '𝜗' | '𝛝' | '𝝑' | '𝞋' | '𝟅' => sym("vartheta"),
+        '𝜘' | '𝛞' | '𝝒' | '𝞌' | '𝟆' => sym("varkappa"),
+        '𝜙' | '𝛟' | '𝝓' | '𝞍' | '𝟇' => sym("phi"),
+        '𝜚' | '𝛠' | '𝝔' | '𝞎' | '𝟈' => sym("varrho"),
+        '𝜛' | '𝛡' | '𝝕' | '𝞏' | '𝟉' => sym("varpi"),
+        '𝟋' | '𝟊' => sym("digamma"),
+
+        '𝛻' | '𝛁' | '𝜵' | '𝝯' | '𝞩' => sym("nabla"),
+        '𝜕' | '𝛛' | '𝝏' | '𝞉' | '𝟃' => sym("partial"),
+
+        'ı' => cmb("text", 'ı'),
+        'ȷ' => cmb("text", 'ȷ'),
+
+        // - Mathematical Symbols
+
+        //   ±×ð÷†‡…ħℏℑℲℵℶℷℸ⅁
+        //   ←↑→↓↔↕↖↗↘↙↞↠↢↣↦↩↪↫↬↭↰↱↶↷↺↻↼↽↾↿⇀⇁⇂⇃⇄⇆⇇⇈⇉⇊⇋⇌⇐⇑⇒⇓⇔⇕⇚⇛⇝⇠⇢
+        //   ∀∁∂∃∅∆∇∈∊∋∍∎∏∐∑−∓∔∕∖∗∘∙∝∞∟∠∡∢∣∥∧∨∩∪∫∬∭∮∯∰
+        //   ∴∵∶∷∸∹∺∻∼∽≀≂≃≅≆≈≊≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≡
+        //   ≤≥≦≧≨≩≪≫≬≲≳≶≷≺≻≼≽≾≿⊂⊃⊆⊇⊊⊋⊎⊏⊐⊑⊒⊓⊔
+        //   ⊕⊖⊗⊘⊙⊚⊛⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊲⊳⊴⊵⊶⊷⊸⊺⊻⊼⊽
+        //   ⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋤⋥⋦⋧⋨⋩
+        //   ⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻⋼⋽⋾⋿⌢⌣◯⟵⟶⟷⟸⟹⟺⟼⨀⨁⨂⨄⨆⨿
+        //   ⩴⩽⩾⪅⪆⪇⪈⪉⪊⪋⪌⪕⪖⪯⪰⪵⪶⪷⪸⪹⪺⫅⫆⫋⫌
         '±' => sym("pm"),
         '×' => sym("times"),
+        // 'ð'
         '÷' => sym("div"),
         '†' => sym("dagger"),
         '‡' => sym("ddagger"),
@@ -268,17 +299,17 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⇚' => sym("Lleftarrow"),
         '⇛' => sym("Rrightarrow"),
         '⇝' => sym("rightsquigarrow"),
+        // '⇠'
+        // '⇢'
         '∀' => sym("forall"),
         '∁' => sym("complement"),
         '∂' => sym("partial"),
         '∃' => sym("exists"),
-        '∅' => sym("empty"),
-        '∆' => cmb("mathop", sym("Delta")?),
+        '∅' => sym("emptyset"),
+        // '∆' => sym("increment"), // \Delta ? \mathop{\Delta} ?
         '∇' => sym("nabla"),
-        '∈' => sym("in"),
-        '∊' => sym("in"),
-        '∋' => sym("ni"),
-        '∍' => sym("ni"),
+        '∈' | '∊' => sym("in"),
+        '∋' | '∍' => sym("ni"),
         '∎' => sym("blacksquare"),
         '∏' => sym("prod"),
         '∐' => sym("coprod"),
@@ -286,12 +317,14 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '−' => raw('-'),
         '∓' => sym("mp"),
         '∔' => sym("dotplus"),
+        '∕' => None,
         '∖' => sym("setminus"),
         '∗' => sym("ast"),
         '∘' => sym("circ"),
-        '∙' => sym("cdot"),
+        '∙' => sym("bullet"),
         '∝' => sym("propto"),
         '∞' => sym("infty"),
+        // '∟'
         '∠' => sym("angle"),
         '∡' => sym("measuredangle"),
         '∢' => sym("sphericalangle"),
@@ -305,17 +338,23 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '∬' => sym("iint"),
         '∭' => sym("iiint"),
         '∮' => sym("oint"),
-        '∯' => sym("oiint"),
-        '∰' => sym("oiiint"),
+        // '∯'
+        // '∰'
         '∴' => sym("therefore"),
         '∵' => sym("because"),
-        '∷' => sym("coloncolon"),
+        '∶' => raw(':'),
+        '∷' => sym("dblcolon"),
+        // '∸'
+        '∹' => sym("eqcolon"),
+        // '∺'
+        // '∻'
         '∼' => sym("sim"),
         '∽' => sym("backsim"),
         '≀' => sym("wr"),
         '≂' => sym("eqsim"),
         '≃' => sym("simeq"),
         '≅' => sym("cong"),
+        // '≆'
         '≈' => sym("approx"),
         '≊' => sym("approxeq"),
         '≍' => sym("asymp"),
@@ -325,11 +364,18 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '≑' => sym("Doteq"),
         '≒' => sym("fallingdotseq"),
         '≓' => sym("risingdotseq"),
-        '≔' => sym("coloneq"),
-        '≕' => sym("eqcolon"),
+        '≔' => sym("coloneqq"),
+        '≕' => sym("eqqcolon"),
         '≖' => sym("eqcirc"),
         '≗' => sym("circeq"),
+        // '≘'
+        // '≙'
+        // '≚'
+        // '≛'
         '≜' => sym("triangleq"),
+        // '≝'
+        // '≞'
+        // '≟'
         '≡' => sym("equiv"),
         '≤' => sym("leq"),
         '≥' => sym("geq"),
@@ -379,20 +425,23 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⊣' => sym("dashv"),
         '⊤' => sym("top"),
         '⊥' => sym("bot"),
+        '⊦' => sym("vdash"),
         '⊧' => sym("models"),
         '⊨' => sym("vDash"),
         '⊩' => sym("Vdash"),
         '⊪' => sym("Vvdash"),
+        // '⊫'
         '⊲' => sym("vartriangleleft"),
         '⊳' => sym("vartriangleright"),
         '⊴' => sym("trianglelefteq"),
         '⊵' => sym("trianglerighteq"),
-        '⊶' => sym("origof"),
-        '⊷' => sym("image"),
+        // '⊶'
+        // '⊷'
         '⊸' => sym("multimap"),
         '⊺' => sym("intercal"),
         '⊻' => sym("veebar"),
         '⊼' => sym("barwedge"),
+        // '⊽'
         '⋀' => sym("bigwedge"),
         '⋁' => sym("bigvee"),
         '⋂' => sym("bigcap"),
@@ -416,19 +465,38 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⋔' => sym("pitchfork"),
         '⋖' => sym("lessdot"),
         '⋗' => sym("gtrdot"),
-        '⋘' => sym("llless"),
+        '⋘' => sym("lll"),
         '⋙' => sym("ggg"),
         '⋚' => sym("lesseqgtr"),
         '⋛' => sym("gtreqless"),
+        // '⋜'
+        // '⋝'
         '⋞' => sym("curlyeqprec"),
         '⋟' => sym("curlyeqsucc"),
+        // '⋤'
+        // '⋥'
         '⋦' => sym("lnsim"),
         '⋧' => sym("gnsim"),
         '⋨' => sym("precnsim"),
         '⋩' => sym("succnsim"),
         '⋮' => sym("vdots"),
         '⋯' => sym("cdots"),
+        // '⋰'
         '⋱' => sym("ddots"),
+        // '⋲'
+        // '⋳'
+        // '⋴'
+        // '⋵'
+        // '⋶'
+        // '⋷'
+        // '⋸'
+        // '⋹'
+        // '⋺'
+        // '⋻'
+        // '⋼'
+        // '⋽'
+        // '⋾'
+        // '⋿'
         '⌢' => sym("frown"),
         '⌣' => sym("smile"),
         '◯' => sym("bigcirc"),
@@ -445,7 +513,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⨄' => sym("biguplus"),
         '⨆' => sym("bigsqcup"),
         '⨿' => sym("amalg"),
-        '⩴' => sym("Coloneq"),
+        '⩴' => sym("Coloneqq"),
         '⩽' => sym("leqslant"),
         '⩾' => sym("geqslant"),
         '⪅' => sym("lessapprox"),
@@ -471,26 +539,25 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⫋' => sym("subsetneqq"),
         '⫌' => sym("supsetneqq"),
 
-        '∸' => Some(r"\dot{ - }".to_string()),
-        '≆' => Some(r"\mathrel{ \widetilde{ \ne } }".to_string()),
-        '≘' => Some(r"\stackrel{ \frown }{ = }".to_string()),
-        '≙' => Some(r"\stackrel{ \wedge }{ = }".to_string()),
-        '≚' => Some(r"\stackrel{ \vee }{ = }".to_string()),
-        '≛' => Some(r"\stackrel{ \star }{ = }".to_string()),
-        '≝' => Some(r"\stackrel{ \mathrm{def} }{ = }".to_string()),
-        '≞' => Some(r"\stackrel{ \mathrm{m} }{ = }".to_string()),
-        '≟' => Some(r"\stackrel{ ? }{ = }".to_string()),
-        '⊽' => cmb("bar", sym("vee")?),
-        '⋵' => Some(r"\dot{ \in }".to_string()),
-        '⋶' | '⋷' => Some(r"\bar{ \in }".to_string()),
-        '⋸' => Some(r"\underline{ \in }".to_string()),
-        '⋽' | '⋾' => Some(r"\bar{ \ni }".to_string()),
+        //'∸' => Some(r"\dot{ - }".to_string()),
+        //'≆' => Some(r"\mathrel{ \widetilde{ \ne } }".to_string()),
+        //'≘' => Some(r"\stackrel{ \frown }{ = }".to_string()),
+        //'≙' => Some(r"\stackrel{ \wedge }{ = }".to_string()),
+        //'≚' => Some(r"\stackrel{ \vee }{ = }".to_string()),
+        //'≛' => Some(r"\stackrel{ \star }{ = }".to_string()),
+        //'≝' => Some(r"\stackrel{ \mathrm{def} }{ = }".to_string()),
+        //'≞' => Some(r"\stackrel{ \mathrm{m} }{ = }".to_string()),
+        //'≟' => Some(r"\stackrel{ ? }{ = }".to_string()),
+        //'⊽' => cmb("bar", sym("vee")?),
+        //'⋵' => Some(r"\dot{ \in }".to_string()),
+        //'⋶' | '⋷' => Some(r"\bar{ \in }".to_string()),
+        //'⋸' => Some(r"\underline{ \in }".to_string()),
+        //'⋽' | '⋾' => Some(r"\bar{ \ni }".to_string()),
 
         //   - unsupported
         'ð' | '⇠' | '⇢' | '∟' | '∺' | '∻' | '⊫' | '⋜' | '⋝' | '⋤' | '⋥' | '⋰' | '⋲' | '⋳' | '⋴'
-        | '⋹' | '⋺' | '⋻' | '⋼' | '⋿' => None,
+        | '⋹' | '⋺' | '⋻' | '⋼' | '⋿' => raw(c),
 
-        // TODO: '∶', '∹', '⊦'
         _ => match is_nfkc_quick(once(c)) {
             IsNormalized::Yes => None,
             _ => unicode_char_to_tex(once(c).nfkc().next()?),
