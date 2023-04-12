@@ -15,12 +15,10 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
     fn cmb<T: Display>(op: &str, arg: T) -> Option<String> {
         Some(format!(r"\{}{{ {} }}", op, arg))
     }
-    fn cmb2<T: Display>(op1: &str, op2: &str, arg: T) -> Option<String> {
-        Some(format!(r"\{}{{ \{}{{ {} }} }}", op1, op2, arg))
-    }
 
     match c {
         // - ASCII
+        ' ' => None,
         '!' => raw(c),
         '"' | '#' => None,
         '$' | '%' | '&' => sym(c),
@@ -100,7 +98,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'ϱ' => sym("varrho"),
         'ϖ' => sym("varpi"),
         'ϝ' | 'Ϝ' => sym("digamma"), // Digamma -> digamma
-        'ϴ' => sym("Theta"),          // Theta Symbol -> Theta
+        'ϴ' => sym("varTheta"),
 
         // - Mathematical Alphanumeric Symbols (1D400-1D7FF)
         //   - Alphabet
@@ -194,7 +192,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '𝝖'..='𝝦' => unicode_char_to_tex(shift(c, '𝝖', 'Α')), // bfsf
         '𝞐'..='𝞠' => unicode_char_to_tex(shift(c, '𝞐', 'Α')), // bfsfit
 
-        '𝛳' | '𝚹' | '𝜭' | '𝝧' | '𝞡' => sym("Theta"),
+        '𝛳' | '𝚹' | '𝜭' | '𝝧' | '𝞡' => sym("varTheta"),
 
         '𝛴'..='𝛺' => unicode_char_to_tex(shift(c, '𝛴', 'Σ')),
         '𝚺'..='𝛀' => unicode_char_to_tex(shift(c, '𝚺', 'Σ')),
@@ -222,26 +220,22 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         'ı' => cmb("text", 'ı'),
         'ȷ' => cmb("text", 'ȷ'),
 
-        // - Mathematical Symbols
-
-        //   ±×ð÷†‡…ħℏℑℲℵℶℷℸ⅁
-        //   ←↑→↓↔↕↖↗↘↙↞↠↢↣↦↩↪↫↬↭↰↱↶↷↺↻↼↽↾↿⇀⇁⇂⇃⇄⇆⇇⇈⇉⇊⇋⇌⇐⇑⇒⇓⇔⇕⇚⇛⇝⇠⇢
-        //   ∀∁∂∃∅∆∇∈∊∋∍∎∏∐∑−∓∔∕∖∗∘∙∝∞∟∠∡∢∣∥∧∨∩∪∫∬∭∮∯∰
-        //   ∴∵∶∷∸∹∺∻∼∽≀≂≃≅≆≈≊≍≎≏≐≑≒≓≔≕≖≗≘≙≚≛≜≝≞≟≡
-        //   ≤≥≦≧≨≩≪≫≬≲≳≶≷≺≻≼≽≾≿⊂⊃⊆⊇⊊⊋⊎⊏⊐⊑⊒⊓⊔
-        //   ⊕⊖⊗⊘⊙⊚⊛⊝⊞⊟⊠⊡⊢⊣⊤⊥⊦⊧⊨⊩⊪⊫⊲⊳⊴⊵⊶⊷⊸⊺⊻⊼⊽
-        //   ⋀⋁⋂⋃⋄⋅⋆⋇⋈⋉⋊⋋⋌⋍⋎⋏⋐⋑⋒⋓⋔⋖⋗⋘⋙⋚⋛⋜⋝⋞⋟⋤⋥⋦⋧⋨⋩
-        //   ⋮⋯⋰⋱⋲⋳⋴⋵⋶⋷⋸⋹⋺⋻⋼⋽⋾⋿⌢⌣◯⟵⟶⟷⟸⟹⟺⟼⨀⨁⨂⨄⨆⨿
-        //   ⩴⩽⩾⪅⪆⪇⪈⪉⪊⪋⪌⪕⪖⪯⪰⪵⪶⪷⪸⪹⪺⫅⫆⫋⫌
+        // - Symbols
+        '§' => sym("S"),
+        '®' => sym("circledR"),
         '±' => sym("pm"),
         '×' => sym("times"),
-        // 'ð'
+        'ð' => sym("eth"),
         '÷' => sym("div"),
+        'ħ' => sym("hbar"),
+        '϶' => sym("backepsilon"),
         '†' => sym("dagger"),
         '‡' => sym("ddagger"),
         '…' => sym("ldots"),
-        'ħ' => sym("hbar"),
         'ℏ' => sym("hslash"),
+        'ℓ' => sym("ell"),
+        '℘' => sym("wp"),
+        '℧' => sym("mho"),
         'Ⅎ' => sym("Finv"),
         'ℵ' => sym("aleph"),
         'ℶ' => sym("beth"),
@@ -299,14 +293,14 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⇚' => sym("Lleftarrow"),
         '⇛' => sym("Rrightarrow"),
         '⇝' => sym("rightsquigarrow"),
-        // '⇠'
-        // '⇢'
+        '⇠' => sym("dashleftarrow"),
+        '⇢' => sym("dashrightarrow"),
         '∀' => sym("forall"),
         '∁' => sym("complement"),
         '∂' => sym("partial"),
         '∃' => sym("exists"),
         '∅' => sym("emptyset"),
-        // '∆' => sym("increment"), // \Delta ? \mathop{\Delta} ?
+        '∆' => sym("bigtriangleup"), // increment -> bigtriangleup
         '∇' => sym("nabla"),
         '∈' | '∊' => sym("in"),
         '∋' | '∍' => sym("ni"),
@@ -322,6 +316,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '∗' => sym("ast"),
         '∘' => sym("circ"),
         '∙' => sym("bullet"),
+        '√' | '∛' | '∜' => None,
         '∝' => sym("propto"),
         '∞' => sym("infty"),
         // '∟'
@@ -344,17 +339,16 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '∵' => sym("because"),
         '∶' => raw(':'),
         '∷' => sym("dblcolon"),
-        // '∸'
+        '∸' => cmb("dot", '-'),
         '∹' => sym("eqcolon"),
-        // '∺'
-        // '∻'
+        '∺' | '∻' => cmb("mathrel", c),
         '∼' => sym("sim"),
         '∽' => sym("backsim"),
         '≀' => sym("wr"),
         '≂' => sym("eqsim"),
         '≃' => sym("simeq"),
         '≅' => sym("cong"),
-        // '≆'
+        '≆' => cmb("mathrel", c),
         '≈' => sym("approx"),
         '≊' => sym("approxeq"),
         '≍' => sym("asymp"),
@@ -368,14 +362,9 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '≕' => sym("eqqcolon"),
         '≖' => sym("eqcirc"),
         '≗' => sym("circeq"),
-        // '≘'
-        // '≙'
-        // '≚'
-        // '≛'
+        '≘' | '≙' | '≚' | '≛' => cmb("mathrel", c),
         '≜' => sym("triangleq"),
-        // '≝'
-        // '≞'
-        // '≟'
+        '≝' | '≞' | '≟' => cmb("mathrel", c),
         '≡' => sym("equiv"),
         '≤' => sym("leq"),
         '≥' => sym("geq"),
@@ -430,18 +419,17 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⊨' => sym("vDash"),
         '⊩' => sym("Vdash"),
         '⊪' => sym("Vvdash"),
-        // '⊫'
+        '⊫' => cmb("mathrel", c),
         '⊲' => sym("vartriangleleft"),
         '⊳' => sym("vartriangleright"),
         '⊴' => sym("trianglelefteq"),
         '⊵' => sym("trianglerighteq"),
-        // '⊶'
-        // '⊷'
+        '⊶' | '⊷' => cmb("mathrel", c),
         '⊸' => sym("multimap"),
         '⊺' => sym("intercal"),
         '⊻' => sym("veebar"),
         '⊼' => sym("barwedge"),
-        // '⊽'
+        '⊽' => cmb("mathbin", c),
         '⋀' => sym("bigwedge"),
         '⋁' => sym("bigvee"),
         '⋂' => sym("bigcap"),
@@ -469,12 +457,10 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⋙' => sym("ggg"),
         '⋚' => sym("lesseqgtr"),
         '⋛' => sym("gtreqless"),
-        // '⋜'
-        // '⋝'
+        '⋜' | '⋝' => cmb("mathrel", c),
         '⋞' => sym("curlyeqprec"),
         '⋟' => sym("curlyeqsucc"),
-        // '⋤'
-        // '⋥'
+        '⋤' | '⋥' => cmb("mathrel", c),
         '⋦' => sym("lnsim"),
         '⋧' => sym("gnsim"),
         '⋨' => sym("precnsim"),
@@ -483,23 +469,24 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⋯' => sym("cdots"),
         // '⋰'
         '⋱' => sym("ddots"),
-        // '⋲'
-        // '⋳'
-        // '⋴'
-        // '⋵'
-        // '⋶'
-        // '⋷'
-        // '⋸'
-        // '⋹'
-        // '⋺'
-        // '⋻'
-        // '⋼'
-        // '⋽'
-        // '⋾'
-        // '⋿'
+        '⋲' | '⋳' | '⋴' | '⋵' | '⋶' | '⋷' | '⋸' | '⋹' | '⋺' | '⋻' | '⋼' | '⋽' | '⋾' | '⋿' => {
+            cmb("mathrel", c)
+        }
         '⌢' => sym("frown"),
         '⌣' => sym("smile"),
+        'Ⓢ' => sym("circledS"),
+        '□' => sym("square"),
         '◯' => sym("bigcirc"),
+        '★' => sym("bigstar"),
+        '♠' => sym("spadesuit"),
+        '♡' => sym("heartsuit"),
+        '♢' => sym("diamondsuit"),
+        '♣' => sym("clubsuit"),
+        '♭' => sym("flat"),
+        '♮' => sym("natural"),
+        '♯' => sym("sharp"),
+        '✓' => sym("checkmark"),
+        '✠' => sym("maltese"),
         '⟵' => sym("longleftarrow"),
         '⟶' => sym("longrightarrow"),
         '⟷' => sym("longleftrightarrow"),
@@ -507,6 +494,7 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⟹' => sym("Longrightarrow"),
         '⟺' => sym("iff"),
         '⟼' => sym("longmapsto"),
+        '⧫' => sym("blacklozenge"),
         '⨀' => sym("bigodot"),
         '⨁' => sym("bigoplus"),
         '⨂' => sym("bigotimes"),
@@ -539,27 +527,8 @@ fn unicode_char_to_tex(c: char) -> Option<String> {
         '⫋' => sym("subsetneqq"),
         '⫌' => sym("supsetneqq"),
 
-        //'∸' => Some(r"\dot{ - }".to_string()),
-        //'≆' => Some(r"\mathrel{ \widetilde{ \ne } }".to_string()),
-        //'≘' => Some(r"\stackrel{ \frown }{ = }".to_string()),
-        //'≙' => Some(r"\stackrel{ \wedge }{ = }".to_string()),
-        //'≚' => Some(r"\stackrel{ \vee }{ = }".to_string()),
-        //'≛' => Some(r"\stackrel{ \star }{ = }".to_string()),
-        //'≝' => Some(r"\stackrel{ \mathrm{def} }{ = }".to_string()),
-        //'≞' => Some(r"\stackrel{ \mathrm{m} }{ = }".to_string()),
-        //'≟' => Some(r"\stackrel{ ? }{ = }".to_string()),
-        //'⊽' => cmb("bar", sym("vee")?),
-        //'⋵' => Some(r"\dot{ \in }".to_string()),
-        //'⋶' | '⋷' => Some(r"\bar{ \in }".to_string()),
-        //'⋸' => Some(r"\underline{ \in }".to_string()),
-        //'⋽' | '⋾' => Some(r"\bar{ \ni }".to_string()),
-
-        //   - unsupported
-        'ð' | '⇠' | '⇢' | '∟' | '∺' | '∻' | '⊫' | '⋜' | '⋝' | '⋤' | '⋥' | '⋰' | '⋲' | '⋳' | '⋴'
-        | '⋹' | '⋺' | '⋻' | '⋼' | '⋿' => raw(c),
-
         _ => match is_nfkc_quick(once(c)) {
-            IsNormalized::Yes => None,
+            IsNormalized::Yes => cmb("text", c),
             _ => unicode_char_to_tex(once(c).nfkc().next()?),
         },
     }
