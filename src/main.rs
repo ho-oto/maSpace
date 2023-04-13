@@ -104,16 +104,14 @@ fn get_tex(c: char) -> Option<String> {
         '𝐀'..='𝐙' | '𝐚'..='𝐳' | '𝟎'..='𝟗' => cmb("mathbf", nfkc(c)),
         '𝐴'..='𝑍' | '𝑎'..='𝑧' | 'ℎ' => cmb("mathit", nfkc(c)),
         '𝑨'..='𝒁' | '𝒂'..='𝒛' => cmb("mathbfit", nfkc(c)),
-        '𝒜'..='𝒵' | '𝒶'..='𝓏' | 'ℬ' | 'ℰ' | 'ℱ' | 'ℋ' | 'ℐ' | 'ℒ' | 'ℳ' | 'ℛ' | 'ℯ' | 'ℊ' | 'ℴ' => {
-            cmb("mathscr", nfkc(c))
-        }
+        '𝒜'..='𝒵' | '𝒶'..='𝓏' => cmb("mathscr", nfkc(c)),
+        'ℬ' | 'ℰ' | 'ℱ' | 'ℋ' | 'ℐ' | 'ℒ' | 'ℳ' | 'ℛ' => cmb("mathscr", nfkc(c)),
+        'ℯ' | 'ℊ' | 'ℴ' => cmb("mathscr", nfkc(c)),
         '𝓐'..='𝓩' | '𝓪'..='𝔃' => cmb("mathbfscr", nfkc(c)),
-        '𝔄'..='𝔜' | '𝔞'..='𝔷' | 'ℭ' | 'ℌ' | 'ℑ' | 'ℜ' | 'ℨ' => {
-            cmb("mathfrak", nfkc(c))
-        }
-        '𝔸'..='𝕐' | '𝕒'..='𝕫' | '𝟘'..='𝟡' | 'ℂ' | 'ℍ' | 'ℕ' | 'ℙ' | 'ℚ' | 'ℝ' | 'ℤ' => {
-            cmb("mathbb", nfkc(c))
-        }
+        '𝔄'..='𝔜' | '𝔞'..='𝔷' => cmb("mathfrak", nfkc(c)),
+        'ℭ' | 'ℌ' | 'ℑ' | 'ℜ' | 'ℨ' => cmb("mathfrak", nfkc(c)),
+        '𝔸'..='𝕐' | '𝕒'..='𝕫' | '𝟘'..='𝟡' => cmb("mathbb", nfkc(c)),
+        'ℂ' | 'ℍ' | 'ℕ' | 'ℙ' | 'ℚ' | 'ℝ' | 'ℤ' => cmb("mathbb", nfkc(c)),
         '𝕬'..='𝖅' | '𝖆'..='𝖟' => cmb("mathbffrak", nfkc(c)),
         '𝖠'..='𝖹' | '𝖺'..='𝗓' | '𝟢'..='𝟫' => cmb("mathsf", nfkc(c)),
         '𝗔'..='𝗭' | '𝗮'..='𝘇' | '𝟬'..='𝟵' => cmb("mathbfsf", nfkc(c)),
@@ -424,8 +422,31 @@ fn get_tex(c: char) -> Option<String> {
     }
 }
 
-fn unicode_accent_to_tex() -> String {
-    "aaa".to_string()
+fn get_unicode_accent(c: char) -> Option<String> {
+    match c {
+        '\u{0300}' => Some("grave".to_string()),
+        '\u{0301}' => Some("acute".to_string()),
+        '\u{0302}' => Some("hat".to_string()),
+        '\u{0303}' => Some("tilde".to_string()),
+        '\u{0304}' => Some("bar".to_string()),
+        '\u{0305}' => Some("overbar".to_string()),
+        '\u{0306}' => Some("breve".to_string()),
+        '\u{0307}' => Some("dot".to_string()),
+        '\u{0308}' => Some("ddot".to_string()),
+        '\u{030A}' => Some("mathring".to_string()),
+        '\u{030C}' => Some("check".to_string()),
+        '\u{0332}' => Some("underline".to_string()),
+        '\u{0338}' => Some("not".to_string()),
+        '\u{034D}' => Some("underleftrightarrow".to_string()),
+        '\u{020D6}' => Some("overleftarrow".to_string()),
+        '\u{020D7}' => Some("vec".to_string()),
+        '\u{020DB}' => Some("dddot".to_string()),
+        '\u{020DC}' => Some("ddddot".to_string()),
+        '\u{020E1}' => Some("overleftrightarrow".to_string()),
+        '\u{020EE}' => Some("underleftarrow".to_string()),
+        '\u{020EF}' => Some("underrightarrow".to_string()),
+        _ => None,
+    }
 }
 
 fn get_sub(c: char) -> Option<char> {
@@ -456,6 +477,7 @@ fn get_sup(c: char) -> Option<char> {
         _ => None,
     }
 }
+
 fn main() {
     assert_eq!(get_tex('Γ').unwrap(), r"\Gamma");
 }
