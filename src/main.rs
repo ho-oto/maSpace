@@ -1,8 +1,8 @@
-use std::{fmt::Display, iter::once};
+use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
 fn get_tex(c: char) -> Option<String> {
-    let nfkc = |c: char| once(c).nfkc().next().unwrap();
+    let nfkc = |c: char| iter::once(c).nfkc().next().unwrap();
 
     fn raw(c: char) -> Option<String> {
         Some(c.to_string())
@@ -17,23 +17,23 @@ fn get_tex(c: char) -> Option<String> {
     match c {
         // - ASCII
         ' ' => None,
-        '!' => raw(c),
-        '"' | '#' => None,
-        '$' | '%' | '&' => sym(c),
-        '\'' | '(' | ')' => None,
-        '*' | '+' | ',' | '-' | '.' => raw(c),
-        '/' => None,
+        '"' | '\'' | '`' => None,
+        '(' | ')' | '[' | ']' | '{' | '}' => None,
+        '#' | '/' | '^' | '_' => None,
         '0'..='9' => None,
-        ':' | ';' | '<' | '=' | '>' | '?' | '@' => raw(c),
-        'A'..='Z' => raw(c),
-        '[' => None,
+
+        '$' | '%' | '&' => sym(c),
         '\\' => sym("backslash"),
-        ']' | '^' | '_' | '`' => None,
-        'a'..='z' => raw(c),
-        '{' => None,
-        '|' => raw(c),
-        '}' => None,
         '~' => sym("sim"),
+
+        '!' | '*' | '+' | ',' | '-' | '.' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '|' => raw(c),
+        'A'..='Z' | 'a'..='z' => raw(c),
+
+        // - special Unicode character
+        '√' | '∛' | '∜' => None,
+        '∕' => None,
+        '⟨' | '⌈' | '⌊' | '⎰' | '⌜' | '⌞' | '⟦' => None,
+        '⟩' | '⌉' | '⌋' | '⎱' | '⌝' | '⌟' | '⟧' => None,
 
         // - Greek alphabets
         //   * capital
@@ -223,12 +223,10 @@ fn get_tex(c: char) -> Option<String> {
         '−' => raw('-'),
         '∓' => sym("mp"),
         '∔' => sym("dotplus"),
-        '∕' => None,
         '∖' => sym("setminus"),
         '∗' => sym("ast"),
         '∘' => sym("circ"),
         '∙' => sym("bullet"),
-        '√' | '∛' | '∜' => None,
         '∝' => sym("propto"),
         '∞' => sym("infty"),
         '∠' => sym("angle"),
@@ -434,7 +432,9 @@ fn get_sub(c: char) -> Option<char> {
     match c {
         '₊' | '₋' | '₌' | '₍' | '₎' | '₀' | '₁' | '₂' | '₃' | '₄' | '₅' | '₆' | '₇' | '₈' | '₉'
         | 'ₐ' | 'ₑ' | 'ₕ' | 'ᵢ' | 'ⱼ' | 'ₖ' | 'ₗ' | 'ₘ' | 'ₙ' | 'ₒ' | 'ₚ' | 'ᵣ' | 'ₛ' | 'ₜ'
-        | 'ᵤ' | 'ᵥ' | 'ₓ' | 'ᵦ' | 'ᵧ' | 'ᵨ' | 'ᵩ' | 'ᵪ' => once(c).nfkc().next(),
+        | 'ᵤ' | 'ᵥ' | 'ₓ' | 'ᵦ' | 'ᵧ' | 'ᵨ' | 'ᵩ' | 'ᵪ' => {
+            iter::once(c).nfkc().next()
+        }
         _ => None,
     }
 }
@@ -445,7 +445,7 @@ fn get_sup(c: char) -> Option<char> {
         | 'ᴬ' | 'ᴮ' | 'ᴰ' | 'ᴱ' | 'ᴳ' | 'ᴴ' | 'ᴵ' | 'ᴶ' | 'ᴷ' | 'ᴸ' | 'ᴹ' | 'ᴺ' | 'ᴼ' | 'ᴾ'
         | 'ᴿ' | 'ᵀ' | 'ᵁ' | 'ⱽ' | 'ᵂ' | 'ᵃ' | 'ᵇ' | 'ᶜ' | 'ᵈ' | 'ᵉ' | 'ᵍ' | 'ʰ' | 'ⁱ' | 'ʲ'
         | 'ᵏ' | 'ˡ' | 'ᵐ' | 'ⁿ' | 'ᵒ' | 'ᵖ' | 'ʳ' | 'ˢ' | 'ᵗ' | 'ᵘ' | 'ᵛ' | 'ʷ' | 'ˣ' | 'ʸ'
-        | 'ᶻ' | 'ᵝ' | 'ᵞ' | '\u{1D5F}' | 'ᶿ' | 'ᵠ' | 'ᵡ' => once(c).nfkc().next(),
+        | 'ᶻ' | 'ᵝ' | 'ᵞ' | '\u{1D5F}' | 'ᶿ' | 'ᵠ' | 'ᵡ' => iter::once(c).nfkc().next(),
         'ᵅ' => Some('α'),
         'ᵋ' => Some('ε'),
         'ᶥ' => Some('ι'),
