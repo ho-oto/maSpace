@@ -1,3 +1,4 @@
+use nom::IResult;
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
@@ -19,14 +20,14 @@ fn get_tex(c: char) -> Option<String> {
         ' ' => None,
         '"' | '\'' | '`' => None,
         '(' | ')' | '[' | ']' | '{' | '}' => None,
-        '#' | '/' | '^' | '_' => None,
+        '#' | '/' | '^' | '_' | '@' => None,
         '0'..='9' => None,
 
         '$' | '%' | '&' => sym(c),
         '\\' => sym("backslash"),
         '~' => sym("sim"),
 
-        '!' | '*' | '+' | ',' | '-' | '.' | ':' | ';' | '<' | '=' | '>' | '?' | '@' | '|' => raw(c),
+        '!' | '*' | '+' | ',' | '-' | '.' | ':' | ';' | '<' | '=' | '>' | '?' | '|' => raw(c),
         'A'..='Z' | 'a'..='z' => raw(c),
 
         // - special Unicode character
@@ -476,6 +477,34 @@ fn get_sup(c: char) -> Option<char> {
         'ꜝ' => Some('!'),
         _ => None,
     }
+}
+
+enum Token {
+    Cat(u64),
+    Sub(u64),
+    Sup(u64),
+    Over(u64),
+    Under(u64),
+    Frac(u64),
+    Root(u64),
+    Type(u64),
+    Open(u64),
+    Close(u64),
+    Num(String),
+    Literal(String),
+    Symbol(String),
+    UnicodeSub(String),
+    UnicodeSup(String),
+}
+
+struct Expr {}
+
+fn tokenize(input: &str) -> IResult<&str, Vec<Token>> {
+    todo!()
+}
+
+fn parse(input: Vec<Token>) -> IResult<Vec<Token>, Expr> {
+    todo!()
 }
 
 fn main() {
