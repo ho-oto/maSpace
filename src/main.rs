@@ -501,8 +501,7 @@ where
     F: Parser<&'a str, Vec<char>, E>,
     E: ParseError<&'a str>,
 {
-    use nom::{character::complete::char, combinator::not, multi::fold_many0, multi::many1};
-    not(many1(char(' ')).or(|input| parser.parse(input)))(s.clone())?;
+    use nom::{character::complete::char, multi::fold_many0};
     let (s, left) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
     let (s, _) = parser.parse(s)?;
     let (s, right) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
@@ -522,8 +521,7 @@ fn take_under<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
 where
     E: ParseError<&'a str>,
 {
-    use nom::character::complete::char;
-    use nom::multi::count;
+    use nom::{character::complete::char, multi::count};
     let (s, order) = take_bin(s, count(char('_'), 2))?;
     Ok((s, Token::Under(order)))
 }
@@ -541,8 +539,7 @@ fn take_over<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
 where
     E: ParseError<&'a str>,
 {
-    use nom::character::complete::char;
-    use nom::multi::count;
+    use nom::{character::complete::char, multi::count};
     let (s, order) = take_bin(s, count(char('^'), 2))?;
     Ok((s, Token::Over(order)))
 }
