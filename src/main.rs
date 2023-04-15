@@ -1,4 +1,4 @@
-use nom::IResult;
+use nom::{combinator, error::ParseError, sequence::preceded, IResult, Parser};
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
@@ -480,16 +480,15 @@ fn get_sup(c: char) -> Option<char> {
 }
 
 enum Token {
-    Cat(u64),
-    Sub(u64),
-    Sup(u64),
-    Over(u64),
-    Under(u64),
-    Frac(u64),
-    Root(u64),
-    Type(u64),
-    Open(u64),
-    Close(u64),
+    Cat(usize),
+    Sub(usize),
+    Sup(usize),
+    Over(usize),
+    Under(usize),
+    Frac(usize),
+    Op(usize),
+    Open(usize),
+    Close(usize),
     Num(String),
     Literal(String),
     Symbol(String),
@@ -497,11 +496,72 @@ enum Token {
     UnicodeSup(String),
 }
 
-struct Expr {}
+fn take_bin<'a, F, E>(s: &'a str, mut parser: F) -> IResult<&'a str, usize, E>
+where
+    F: Parser<&'a str, Vec<char>, E>,
+    E: ParseError<&'a str>,
+{
+    use nom::{character::complete::char, combinator::not, multi::fold_many0, multi::many1};
+    not(many1(char(' ')).or(|input| parser.parse(input)))(s.clone())?;
+    let (s, left) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
+    let (s, _) = parser.parse(s)?;
+    let (s, right) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
+    Ok((s, left.max(right)))
+}
+
+fn take_sub<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
+where
+    E: ParseError<&'a str>,
+{
+    use nom::{character::complete::char, multi::count};
+    let (s, order) = take_bin(s, count(char('_'), 1))?;
+    Ok((s, Token::Sub(order)))
+}
+
+fn take_under<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
+where
+    E: ParseError<&'a str>,
+{
+    use nom::character::complete::char;
+    use nom::multi::count;
+    let (s, order) = take_bin(s, count(char('_'), 2))?;
+    Ok((s, Token::Under(order)))
+}
+
+fn take_sup<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
+where
+    E: ParseError<&'a str>,
+{
+    use nom::{character::complete::char, multi::count};
+    let (s, order) = take_bin(s, count(char('^'), 1))?;
+    Ok((s, Token::Sup(order)))
+}
+
+fn take_over<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
+where
+    E: ParseError<&'a str>,
+{
+    use nom::character::complete::char;
+    use nom::multi::count;
+    let (s, order) = take_bin(s, count(char('^'), 2))?;
+    Ok((s, Token::Over(order)))
+}
+
+fn take_frac<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
+where
+    E: ParseError<&'a str>,
+{
+    use nom::character::complete::char;
+    use nom::multi::count;
+    let (s, order) = take_bin(s, count(char('/').or(char('∕')), 1))?;
+    Ok((s, Token::Over(order)))
+}
 
 fn tokenize(input: &str) -> IResult<&str, Vec<Token>> {
     todo!()
 }
+
+struct Expr {}
 
 fn parse(input: Vec<Token>) -> IResult<Vec<Token>, Expr> {
     todo!()
