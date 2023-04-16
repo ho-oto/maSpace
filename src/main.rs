@@ -1,19 +1,22 @@
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{one_of, char, alpha1, alphanumeric1, anychar},
-    combinator::{map_res, opt},
+    character::complete::{alpha0, alpha1, alphanumeric1, anychar, char, digit1, none_of, one_of},
+    combinator::{map, map_res, opt, peek},
     error::ParseError,
     multi::fold_many0,
     multi::many0,
     sequence,
-    sequence::{pair, tuple},
+    sequence::{delimited, pair, tuple},
     IResult, Parser,
 };
-use std::{fmt::Display, iter};
+use std::{
+    fmt::{format, Display},
+    iter,
+};
 use unicode_normalization::UnicodeNormalization;
 
-fn get_tex(c: char) -> Result<String, ()> {
+fn get_tex_from_char(c: char) -> Result<String, ()> {
     let nfkc = |c: char| iter::once(c).nfkc().next().ok_or(());
 
     fn raw(c: char) -> String {
@@ -136,7 +139,7 @@ fn get_tex(c: char) -> Result<String, ()> {
         //   - Greek alphabets
         //   ignore Bold/Italic style
         '𝛢'..='𝜛' | '𝚨'..='𝛡' | '𝜜'..='𝝕' | '𝝖'..='𝞏' | '𝞐'..='𝟉' | '𝟋' => {
-            get_tex(nfkc(c)?)?
+            get_tex_from_char(nfkc(c)?)?
         }
         'ı' => cmb("text", 'ı'),
         'ȷ' => cmb("text", 'ȷ'),
@@ -434,6 +437,28 @@ fn get_tex(c: char) -> Result<String, ()> {
     })
 }
 
+fn expand_abbred_symbol(s: &str) -> String {
+    match s {
+        _ => s.to_string(),
+    }
+}
+
+fn expand_abbred_op(s: &str) -> String {
+    match s {
+        _ => s.to_string(),
+    }
+}
+
+fn expand_abbred_literal_suffix(s: &str) -> String {
+    match s {
+        _ => s.to_string(),
+    }
+}
+
+fn escape_tex(s: &str) -> String {
+    todo!()
+}
+
 fn get_unicode_accent(c: char) -> Result<String, ()> {
     Ok(match c {
         '\u{0300}' => "grave",
@@ -500,11 +525,9 @@ enum Token {
     Over(usize),
     Under(usize),
     Frac(usize),
-    Op { tex: String, order: usize },
+    Op(String, usize),
     Open(String),
     Close(String),
-    Num(String),
-    Literal(String),
     Symbol(String),
     UnicodeSub(Box<Token>),
     UnicodeSup(Box<Token>),
@@ -546,7 +569,7 @@ fn take_cat(s: &str) -> IResult<&str, Token> {
 fn take_symbol_unicode(s: &str) -> IResult<&str, Token> {
     let (s, (prefix, mut tex, unicode_props, ascii_props)) = tuple((
         opt(pair(char('#'), opt(char('!')))),
-        map_res(anychar, get_tex),
+        map_res(anychar, get_tex_from_char),
         many0(map_res(anychar, get_unicode_accent)),
         many0(pair(char('.'), alphanumeric1)),
     ))(s)?;
@@ -569,7 +592,7 @@ fn take_symbol_ascii(s: &str) -> IResult<&str, Token> {
         alpha1,
         many0(pair(char('.'), alphanumeric1)),
     ))(s)?;
-    let mut tex = format!(r"\{}", base);
+    let mut tex = format!(r"\{}", expand_abbred_symbol(base));
     if let Some(_) = not {
         tex = format!(r"\not{{ {} }}", tex);
     }
@@ -579,8 +602,47 @@ fn take_symbol_ascii(s: &str) -> IResult<&str, Token> {
     Ok((s, Token::Symbol(tex)))
 }
 
+fn take_string_literal(s: &str) -> IResult<&str, Token> {
+    let (s, l) = delimited(char('"'), many0(none_of(r#"""#)), char('"'))(s)?;
+    let (s, suffix) = alpha0(s)?;
+    let mut literal = format!("");
+    for c in l {
+        match c {
+            '#' | '$' | '%' | '_' | '{' | '}' => {
+                literal.push('\\');
+                literal.push(c)
+            }
+            '~' => literal.push_str(r"\textasciitilde"),
+            '^' => literal.push_str(r"\textasciicircum"),
+            '\\' => literal.push_str(r"\backslash"),
+            _ => literal.push(c),
+        }
+    }
+    let suffix = expand_abbred_literal_suffix(suffix);
+    Ok((s, Token::Symbol(format!(r"\{}{{ {} }}", suffix, literal))))
+}
+
+fn take_here_document(s: &str) -> IResult<&str, Token> {
+    todo!()
+}
+
+fn take_number(s: &str) -> IResult<&str, Token> {
+    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
+    if let Some((_, y)) = y {
+        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
+    } else {
+        Ok((s, Token::Symbol(x.to_string())))
+    }
+}
+
 fn take_symbol(s: &str) -> IResult<&str, Token> {
-    alt((take_symbol_ascii, take_symbol_unicode))(s)
+    alt((
+        take_symbol_ascii,
+        take_symbol_unicode,
+        take_string_literal,
+        take_here_document,
+        take_number,
+    ))(s)
 }
 
 fn take_op_unicode(s: &str) -> IResult<&str, Token> {
@@ -588,18 +650,9 @@ fn take_op_unicode(s: &str) -> IResult<&str, Token> {
     Ok((
         s,
         match t {
-            '√' => Token::Op {
-                tex: format!(r"\sqrt"),
-                order,
-            },
-            '∛' => Token::Op {
-                tex: format!(r"\sqrt[3]"),
-                order,
-            },
-            '∜' => Token::Op {
-                tex: format!(r"\sqrt[4]"),
-                order,
-            },
+            '√' => Token::Op(format!(r"\sqrt"), order),
+            '∛' => Token::Op(format!(r"\sqrt[3]"), order),
+            '∜' => Token::Op(format!(r"\sqrt[4]"), order),
             _ => unreachable!(),
         },
     ))
@@ -609,25 +662,16 @@ fn take_op_ascii(s: &str) -> IResult<&str, Token> {
     let (s, (_, base, ascii_props, order)) = tuple((
         char('@'),
         alpha1,
-        many0(pair(char('.'), alphanumeric1)),
+        many0(map(pair(char('.'), alphanumeric1), |(_, x)| x)),
         num_space,
     ))(s)?;
-    let tex = format!(
-        r"\{}[{}]",
-        base,
-        ascii_props
-            .into_iter()
-            .map(|(_, x)| x.to_string())
-            .collect::<Vec<String>>()
-            .join(",")
-    );
-    Ok((s, Token::Op { tex, order }))
+    let tex = format!(r"\{}[{}]", expand_abbred_op(base), ascii_props.join(","));
+    Ok((s, Token::Op(tex, order)))
 }
 
 fn take_op(s: &str) -> IResult<&str, Token> {
     alt((take_op_ascii, take_op_unicode))(s)
 }
-
 
 fn tokenize(input: &str) -> Vec<Token> {
     todo!()
@@ -640,5 +684,5 @@ fn parse(input: Vec<Token>) -> IResult<Vec<Token>, Expr> {
 }
 
 fn main() {
-    assert_eq!(get_tex('Γ').unwrap(), r"\Gamma");
+    assert_eq!(get_tex_from_char('Γ').unwrap(), r"\Gamma");
 }
