@@ -2,26 +2,26 @@ use nom::{error::ParseError, IResult, Parser};
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
-fn get_tex(c: char) -> Option<String> {
-    let nfkc = |c: char| iter::once(c).nfkc().next().unwrap();
+fn get_tex(c: char) -> Result<String, ()> {
+    let nfkc = |c: char| iter::once(c).nfkc().next().ok_or(());
 
-    fn raw(c: char) -> Option<String> {
-        Some(c.to_string())
+    fn raw(c: char) -> String {
+        c.to_string()
     }
-    fn sym<T: Display>(s: T) -> Option<String> {
-        Some(format!(r"\{}", s))
+    fn sym<T: Display>(s: T) -> String {
+        format!(r"\{}", s)
     }
-    fn cmb<T: Display>(op: &str, arg: T) -> Option<String> {
-        Some(format!(r"\{}{{ {} }}", op, arg))
+    fn cmb<T: Display>(op: &str, arg: T) -> String {
+        format!(r"\{}{{ {} }}", op, arg)
     }
 
-    match c {
+    Ok(match c {
         // - ASCII
-        ' ' => None,
-        '"' | '\'' | '`' => None,
-        '(' | ')' | '[' | ']' | '{' | '}' => None,
-        '#' | '/' | '^' | '_' | '@' => None,
-        '0'..='9' => None,
+        ' ' => return Err(()),
+        '"' | '\'' | '`' => return Err(()),
+        '(' | ')' | '[' | ']' | '{' | '}' => return Err(()),
+        '#' | '/' | '^' | '_' | '@' => return Err(()),
+        '0'..='9' => return Err(()),
 
         '$' | '%' | '&' => sym(c),
         '\\' => sym("backslash"),
@@ -31,10 +31,10 @@ fn get_tex(c: char) -> Option<String> {
         'A'..='Z' | 'a'..='z' => raw(c),
 
         // - special Unicode character
-        '√' | '∛' | '∜' => None,
-        '∕' => None,
-        '⟨' | '⌈' | '⌊' | '⎰' | '⌜' | '⌞' | '⟦' => None,
-        '⟩' | '⌉' | '⌋' | '⎱' | '⌝' | '⌟' | '⟧' => None,
+        '√' | '∛' | '∜' => return Err(()),
+        '∕' => return Err(()),
+        '⟨' | '⌈' | '⌊' | '⎰' | '⌜' | '⌞' | '⟦' => return Err(()),
+        '⟩' | '⌉' | '⌋' | '⎱' | '⌝' | '⌟' | '⟧' => return Err(()),
 
         // - Greek alphabets
         //   * capital
@@ -102,30 +102,30 @@ fn get_tex(c: char) -> Option<String> {
 
         // - Mathematical Alphanumeric Symbols (1D400-1D7FF)
         //   - Alphabet
-        '𝐀'..='𝐙' | '𝐚'..='𝐳' | '𝟎'..='𝟗' => cmb("mathbf", nfkc(c)),
-        '𝐴'..='𝑍' | '𝑎'..='𝑧' | 'ℎ' => cmb("mathit", nfkc(c)),
-        '𝑨'..='𝒁' | '𝒂'..='𝒛' => cmb("mathbfit", nfkc(c)),
-        '𝒜'..='𝒵' | '𝒶'..='𝓏' => cmb("mathscr", nfkc(c)),
-        'ℬ' | 'ℰ' | 'ℱ' | 'ℋ' | 'ℐ' | 'ℒ' | 'ℳ' | 'ℛ' => cmb("mathscr", nfkc(c)),
-        'ℯ' | 'ℊ' | 'ℴ' => cmb("mathscr", nfkc(c)),
-        '𝓐'..='𝓩' | '𝓪'..='𝔃' => cmb("mathbfscr", nfkc(c)),
-        '𝔄'..='𝔜' | '𝔞'..='𝔷' => cmb("mathfrak", nfkc(c)),
-        'ℭ' | 'ℌ' | 'ℑ' | 'ℜ' | 'ℨ' => cmb("mathfrak", nfkc(c)),
-        '𝔸'..='𝕐' | '𝕒'..='𝕫' | '𝟘'..='𝟡' => cmb("mathbb", nfkc(c)),
-        'ℂ' | 'ℍ' | 'ℕ' | 'ℙ' | 'ℚ' | 'ℝ' | 'ℤ' => cmb("mathbb", nfkc(c)),
-        '𝕬'..='𝖅' | '𝖆'..='𝖟' => cmb("mathbffrak", nfkc(c)),
-        '𝖠'..='𝖹' | '𝖺'..='𝗓' | '𝟢'..='𝟫' => cmb("mathsf", nfkc(c)),
-        '𝗔'..='𝗭' | '𝗮'..='𝘇' | '𝟬'..='𝟵' => cmb("mathbfsf", nfkc(c)),
-        '𝘈'..='𝘡' | '𝘢'..='𝘻' => cmb("mathsfit", nfkc(c)),
-        '𝘼'..='𝙕' | '𝙖'..='𝙯' => cmb("mathbfsfit", nfkc(c)),
-        '𝙰'..='𝚉' | '𝚊'..='𝚣' | '𝟶'..='𝟿' => cmb("mathtt", nfkc(c)),
+        '𝐀'..='𝐙' | '𝐚'..='𝐳' | '𝟎'..='𝟗' => cmb("mathbf", nfkc(c)?),
+        '𝐴'..='𝑍' | '𝑎'..='𝑧' | 'ℎ' => cmb("mathit", nfkc(c)?),
+        '𝑨'..='𝒁' | '𝒂'..='𝒛' => cmb("mathbfit", nfkc(c)?),
+        '𝒜'..='𝒵' | '𝒶'..='𝓏' => cmb("mathscr", nfkc(c)?),
+        'ℬ' | 'ℰ' | 'ℱ' | 'ℋ' | 'ℐ' | 'ℒ' | 'ℳ' | 'ℛ' => cmb("mathscr", nfkc(c)?),
+        'ℯ' | 'ℊ' | 'ℴ' => cmb("mathscr", nfkc(c)?),
+        '𝓐'..='𝓩' | '𝓪'..='𝔃' => cmb("mathbfscr", nfkc(c)?),
+        '𝔄'..='𝔜' | '𝔞'..='𝔷' => cmb("mathfrak", nfkc(c)?),
+        'ℭ' | 'ℌ' | 'ℑ' | 'ℜ' | 'ℨ' => cmb("mathfrak", nfkc(c)?),
+        '𝔸'..='𝕐' | '𝕒'..='𝕫' | '𝟘'..='𝟡' => cmb("mathbb", nfkc(c)?),
+        'ℂ' | 'ℍ' | 'ℕ' | 'ℙ' | 'ℚ' | 'ℝ' | 'ℤ' => cmb("mathbb", nfkc(c)?),
+        '𝕬'..='𝖅' | '𝖆'..='𝖟' => cmb("mathbffrak", nfkc(c)?),
+        '𝖠'..='𝖹' | '𝖺'..='𝗓' | '𝟢'..='𝟫' => cmb("mathsf", nfkc(c)?),
+        '𝗔'..='𝗭' | '𝗮'..='𝘇' | '𝟬'..='𝟵' => cmb("mathbfsf", nfkc(c)?),
+        '𝘈'..='𝘡' | '𝘢'..='𝘻' => cmb("mathsfit", nfkc(c)?),
+        '𝘼'..='𝙕' | '𝙖'..='𝙯' => cmb("mathbfsfit", nfkc(c)?),
+        '𝙰'..='𝚉' | '𝚊'..='𝚣' | '𝟶'..='𝟿' => cmb("mathtt", nfkc(c)?),
         //     * Dotless
         '𝚤' => sym("imath"),
         '𝚥' => sym("jmath"),
         //   - Greek alphabets
         //   ignore Bold/Italic style
         '𝛢'..='𝜛' | '𝚨'..='𝛡' | '𝜜'..='𝝕' | '𝝖'..='𝞏' | '𝞐'..='𝟉' | '𝟋' => {
-            get_tex(nfkc(c))
+            get_tex(nfkc(c)?)?
         }
         'ı' => cmb("text", 'ı'),
         'ȷ' => cmb("text", 'ȷ'),
@@ -419,8 +419,8 @@ fn get_tex(c: char) -> Option<String> {
         '⫆' => sym("supseteqq"),
         '⫋' => sym("subsetneqq"),
         '⫌' => sym("supsetneqq"),
-        _ => None,
-    }
+        _ => return Err(()),
+    })
 }
 
 fn get_unicode_accent(c: char) -> Option<String> {
@@ -570,7 +570,7 @@ fn take_symbol_unicode(s: &str) -> IResult<&str, Token> {
     };
     let (s, (prefix, tex, unicode_props, ascii_props)) = tuple((
         opt(pair(char('#'), opt(char('!')))),
-        map_res(anychar, |x| get_tex(x).ok_or(())),
+        map_res(anychar, get_tex),
         many0(map_res(anychar, |x| get_unicode_accent(x).ok_or(()))),
         many0(pair(char('.'), alphanumeric1)),
     ))(s)?;
