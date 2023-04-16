@@ -1,4 +1,4 @@
-use nom::{combinator, error::ParseError, sequence::preceded, IResult, Parser};
+use nom::{error::ParseError, IResult, Parser};
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
@@ -491,7 +491,7 @@ enum Token {
     Close(usize),
     Num(String),
     Literal(String),
-    Symbol(String),
+    Symbol { tex: String, props: Vec<String> },
     UnicodeSub(String),
     UnicodeSup(String),
 }
@@ -501,10 +501,12 @@ where
     F: Parser<&'a str, Vec<char>, E>,
     E: ParseError<&'a str>,
 {
-    use nom::{character::complete::char, multi::fold_many0};
-    let (s, left) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
-    let (s, _) = parser.parse(s)?;
-    let (s, right) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
+    use nom::{character::complete::char, multi::fold_many0, sequence::tuple};
+    let (s, (left, _, right)) = tuple((
+        fold_many0(char(' '), || 0, |x: usize, _| x + 1),
+        parser,
+        fold_many0(char(' '), || 0, |x: usize, _| x + 1),
+    ))(s)?;
     Ok((s, left.max(right)))
 }
 
@@ -548,13 +550,67 @@ fn take_frac<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
 where
     E: ParseError<&'a str>,
 {
-    use nom::character::complete::char;
-    use nom::multi::count;
+    use nom::{character::complete::char, multi::count};
     let (s, order) = take_bin(s, count(char('/').or(char('∕')), 1))?;
     Ok((s, Token::Over(order)))
 }
 
-fn tokenize(input: &str) -> IResult<&str, Vec<Token>> {
+fn take_cat(s: &str) -> IResult<&str, Token> {
+    use nom::{character::complete::char, multi::fold_many0};
+    let (s, num) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
+    Ok((s, Token::Cat(num)))
+}
+
+fn take_symbol_unicode(s: &str) -> IResult<&str, Token> {
+    use nom::{
+        character::complete::{alphanumeric1, anychar, char},
+        combinator::{map_res, opt},
+        multi::many0,
+        sequence::{pair, tuple},
+    };
+    let (s, (prefix, tex, unicode_props, ascii_props)) = tuple((
+        opt(pair(char('#'), opt(char('!')))),
+        map_res(anychar, |x| get_tex(x).ok_or(())),
+        many0(map_res(anychar, |x| get_unicode_accent(x).ok_or(()))),
+        many0(pair(char('.'), alphanumeric1)),
+    ))(s)?;
+    let mut props = vec![];
+    if let Some((_, Some(_))) = prefix {
+        props.push("not".to_string())
+    };
+    props.extend(unicode_props);
+    props.extend(ascii_props.into_iter().map(|(_, x)| x.to_string()));
+    Ok((s, Token::Symbol { tex, props }))
+}
+
+fn take_symbol_ascii(s: &str) -> IResult<&str, Token> {
+    use nom::{
+        character::complete::{alpha1, alphanumeric1, char},
+        combinator::opt,
+        multi::many0,
+        sequence::{pair, tuple},
+    };
+    //let mut props = vec![];
+    let (s, (_, not, tex, ascii_props)) = tuple((
+        char('#'),
+        opt(char('!')),
+        alpha1,
+        many0(pair(char('.'), alphanumeric1)),
+    ))(s)?;
+    let tex = tex.to_string();
+    let mut props = vec![];
+    if let Some(_) = not {
+        props.push("not".to_string());
+    }
+    props.extend(ascii_props.into_iter().map(|(_, x)| x.to_string()));
+    Ok((s, Token::Symbol { tex, props }))
+}
+
+fn take_op_unicode() {}
+
+fn take_op_ascii() {}
+
+fn tokenize(input: &str) -> Vec<Token> {
     todo!()
 }
 
