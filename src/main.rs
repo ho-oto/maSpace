@@ -1,4 +1,15 @@
-use nom::{error::ParseError, IResult, Parser};
+use nom::{
+    branch::alt,
+    bytes::complete::tag,
+    character::complete::{one_of, char, alpha1, alphanumeric1, anychar},
+    combinator::{map_res, opt},
+    error::ParseError,
+    multi::fold_many0,
+    multi::many0,
+    sequence,
+    sequence::{pair, tuple},
+    IResult, Parser,
+};
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
@@ -423,59 +434,62 @@ fn get_tex(c: char) -> Result<String, ()> {
     })
 }
 
-fn get_unicode_accent(c: char) -> Option<String> {
-    match c {
-        '\u{0300}' => Some("grave".to_string()),
-        '\u{0301}' => Some("acute".to_string()),
-        '\u{0302}' => Some("hat".to_string()),
-        '\u{0303}' => Some("tilde".to_string()),
-        '\u{0304}' => Some("bar".to_string()),
-        '\u{0305}' => Some("overbar".to_string()),
-        '\u{0306}' => Some("breve".to_string()),
-        '\u{0307}' => Some("dot".to_string()),
-        '\u{0308}' => Some("ddot".to_string()),
-        '\u{030A}' => Some("mathring".to_string()),
-        '\u{030C}' => Some("check".to_string()),
-        '\u{0332}' => Some("underline".to_string()),
-        '\u{0338}' => Some("not".to_string()),
-        '\u{034D}' => Some("underleftrightarrow".to_string()),
-        '\u{020D6}' => Some("overleftarrow".to_string()),
-        '\u{020D7}' => Some("vec".to_string()),
-        '\u{020DB}' => Some("dddot".to_string()),
-        '\u{020DC}' => Some("ddddot".to_string()),
-        '\u{020E1}' => Some("overleftrightarrow".to_string()),
-        '\u{020EE}' => Some("underleftarrow".to_string()),
-        '\u{020EF}' => Some("underrightarrow".to_string()),
-        _ => None,
+fn get_unicode_accent(c: char) -> Result<String, ()> {
+    Ok(match c {
+        '\u{0300}' => "grave",
+        '\u{0301}' => "acute",
+        '\u{0302}' => "hat",
+        '\u{0303}' => "tilde",
+        '\u{0304}' => "bar",
+        '\u{0305}' => "overbar",
+        '\u{0306}' => "breve",
+        '\u{0307}' => "dot",
+        '\u{0308}' => "ddot",
+        '\u{030A}' => "mathring",
+        '\u{030C}' => "check",
+        '\u{0332}' => "underline",
+        '\u{0338}' => "not",
+        '\u{034D}' => "underleftrightarrow",
+        '\u{020D6}' => "overleftarrow",
+        '\u{020D7}' => "vec",
+        '\u{020DB}' => "dddot",
+        '\u{020DC}' => "ddddot",
+        '\u{020E1}' => "overleftrightarrow",
+        '\u{020EE}' => "underleftarrow",
+        '\u{020EF}' => "underrightarrow",
+        _ => return Err(()),
     }
+    .to_string())
 }
 
-fn get_sub(c: char) -> Option<char> {
+fn get_sub(c: char) -> Result<char, ()> {
     match c {
         '₊' | '₋' | '₌' | '₍' | '₎' | '₀' | '₁' | '₂' | '₃' | '₄' | '₅' | '₆' | '₇' | '₈' | '₉'
         | 'ₐ' | 'ₑ' | 'ₕ' | 'ᵢ' | 'ⱼ' | 'ₖ' | 'ₗ' | 'ₘ' | 'ₙ' | 'ₒ' | 'ₚ' | 'ᵣ' | 'ₛ' | 'ₜ'
         | 'ᵤ' | 'ᵥ' | 'ₓ' | 'ᵦ' | 'ᵧ' | 'ᵨ' | 'ᵩ' | 'ᵪ' => {
-            iter::once(c).nfkc().next()
+            iter::once(c).nfkc().next().ok_or(())
         }
-        _ => None,
+        _ => Err(()),
     }
 }
 
-fn get_sup(c: char) -> Option<char> {
+fn get_sup(c: char) -> Result<char, ()> {
     match c {
         '⁺' | '⁻' | '⁼' | '⁽' | '⁾' | '⁰' | '¹' | '²' | '³' | '⁴' | '⁵' | '⁶' | '⁷' | '⁸' | '⁹'
         | 'ᴬ' | 'ᴮ' | 'ᴰ' | 'ᴱ' | 'ᴳ' | 'ᴴ' | 'ᴵ' | 'ᴶ' | 'ᴷ' | 'ᴸ' | 'ᴹ' | 'ᴺ' | 'ᴼ' | 'ᴾ'
         | 'ᴿ' | 'ᵀ' | 'ᵁ' | 'ⱽ' | 'ᵂ' | 'ᵃ' | 'ᵇ' | 'ᶜ' | 'ᵈ' | 'ᵉ' | 'ᵍ' | 'ʰ' | 'ⁱ' | 'ʲ'
         | 'ᵏ' | 'ˡ' | 'ᵐ' | 'ⁿ' | 'ᵒ' | 'ᵖ' | 'ʳ' | 'ˢ' | 'ᵗ' | 'ᵘ' | 'ᵛ' | 'ʷ' | 'ˣ' | 'ʸ'
-        | 'ᶻ' | 'ᵝ' | 'ᵞ' | '\u{1D5F}' | 'ᶿ' | 'ᵠ' | 'ᵡ' => iter::once(c).nfkc().next(),
-        'ᵅ' => Some('α'),
-        'ᵋ' => Some('ε'),
-        'ᶥ' => Some('ι'),
-        'ᶲ' => Some('ϕ'),
-        'ꜛ' => Some('↑'),
-        'ꜜ' => Some('↓'),
-        'ꜝ' => Some('!'),
-        _ => None,
+        | 'ᶻ' | 'ᵝ' | 'ᵞ' | '\u{1D5F}' | 'ᶿ' | 'ᵠ' | 'ᵡ' => {
+            iter::once(c).nfkc().next().ok_or(())
+        }
+        'ᵅ' => Ok('α'),
+        'ᵋ' => Ok('ε'),
+        'ᶥ' => Ok('ι'),
+        'ᶲ' => Ok('ϕ'),
+        'ꜛ' => Ok('↑'),
+        'ꜜ' => Ok('↓'),
+        'ꜝ' => Ok('!'),
+        _ => Err(()),
     }
 }
 
@@ -486,129 +500,134 @@ enum Token {
     Over(usize),
     Under(usize),
     Frac(usize),
-    Op(usize),
-    Open(usize),
-    Close(usize),
+    Op { tex: String, order: usize },
+    Open(String),
+    Close(String),
     Num(String),
     Literal(String),
-    Symbol { tex: String, props: Vec<String> },
-    UnicodeSub(String),
-    UnicodeSup(String),
+    Symbol(String),
+    UnicodeSub(Box<Token>),
+    UnicodeSup(Box<Token>),
 }
 
-fn take_bin<'a, F, E>(s: &'a str, mut parser: F) -> IResult<&'a str, usize, E>
+fn num_space<'a, E: ParseError<&'a str>>(s: &'a str) -> IResult<&'a str, usize, E> {
+    fold_many0(char(' '), || 0, |x, _| x + 1)(s)
+}
+
+fn max_space_around<'a, R, F, E>(s: &'a str, parser: F) -> IResult<&'a str, usize, E>
 where
-    F: Parser<&'a str, Vec<char>, E>,
+    F: Parser<&'a str, R, E>,
     E: ParseError<&'a str>,
 {
-    use nom::{character::complete::char, multi::fold_many0, sequence::tuple};
-    let (s, (left, _, right)) = tuple((
-        fold_many0(char(' '), || 0, |x: usize, _| x + 1),
-        parser,
-        fold_many0(char(' '), || 0, |x: usize, _| x + 1),
-    ))(s)?;
+    let (s, (left, _, right)) = sequence::tuple((num_space, parser, num_space))(s)?;
     Ok((s, left.max(right)))
 }
 
-fn take_sub<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
-where
-    E: ParseError<&'a str>,
-{
-    use nom::{character::complete::char, multi::count};
-    let (s, order) = take_bin(s, count(char('_'), 1))?;
-    Ok((s, Token::Sub(order)))
+fn take_sub(s: &str) -> IResult<&str, Token> {
+    max_space_around(s, char('_')).map(|(s, n)| (s, Token::Sub(n)))
 }
-
-fn take_under<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
-where
-    E: ParseError<&'a str>,
-{
-    use nom::{character::complete::char, multi::count};
-    let (s, order) = take_bin(s, count(char('_'), 2))?;
-    Ok((s, Token::Under(order)))
+fn take_under(s: &str) -> IResult<&str, Token> {
+    max_space_around(s, tag("__")).map(|(s, n)| (s, Token::Under(n)))
 }
-
-fn take_sup<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
-where
-    E: ParseError<&'a str>,
-{
-    use nom::{character::complete::char, multi::count};
-    let (s, order) = take_bin(s, count(char('^'), 1))?;
-    Ok((s, Token::Sup(order)))
+fn take_sup(s: &str) -> IResult<&str, Token> {
+    max_space_around(s, char('^')).map(|(s, n)| (s, Token::Sup(n)))
 }
-
-fn take_over<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
-where
-    E: ParseError<&'a str>,
-{
-    use nom::{character::complete::char, multi::count};
-    let (s, order) = take_bin(s, count(char('^'), 2))?;
-    Ok((s, Token::Over(order)))
+fn take_over(s: &str) -> IResult<&str, Token> {
+    max_space_around(s, tag("^^")).map(|(s, n)| (s, Token::Over(n)))
 }
-
-fn take_frac<'a, E>(s: &'a str) -> IResult<&'a str, Token, E>
-where
-    E: ParseError<&'a str>,
-{
-    use nom::{character::complete::char, multi::count};
-    let (s, order) = take_bin(s, count(char('/').or(char('∕')), 1))?;
-    Ok((s, Token::Over(order)))
+fn take_frac(s: &str) -> IResult<&str, Token> {
+    max_space_around(s, one_of("/∕")).map(|(s, n)| (s, Token::Frac(n)))
 }
 
 fn take_cat(s: &str) -> IResult<&str, Token> {
-    use nom::{character::complete::char, multi::fold_many0};
-    let (s, num) = fold_many0(char(' '), || 0, |x: usize, _| x + 1)(s)?;
-    Ok((s, Token::Cat(num)))
+    num_space(s).map(|(s, n)| (s, Token::Cat(n)))
 }
 
 fn take_symbol_unicode(s: &str) -> IResult<&str, Token> {
-    use nom::{
-        character::complete::{alphanumeric1, anychar, char},
-        combinator::{map_res, opt},
-        multi::many0,
-        sequence::{pair, tuple},
-    };
-    let (s, (prefix, tex, unicode_props, ascii_props)) = tuple((
+    let (s, (prefix, mut tex, unicode_props, ascii_props)) = tuple((
         opt(pair(char('#'), opt(char('!')))),
         map_res(anychar, get_tex),
-        many0(map_res(anychar, |x| get_unicode_accent(x).ok_or(()))),
+        many0(map_res(anychar, get_unicode_accent)),
         many0(pair(char('.'), alphanumeric1)),
     ))(s)?;
-    let mut props = vec![];
     if let Some((_, Some(_))) = prefix {
-        props.push("not".to_string())
+        tex = format!(r"\not{{ {} }}", tex);
     };
-    props.extend(unicode_props);
-    props.extend(ascii_props.into_iter().map(|(_, x)| x.to_string()));
-    Ok((s, Token::Symbol { tex, props }))
+    for prop in unicode_props {
+        tex = format!(r"\{}{{ {} }}", prop, tex);
+    }
+    for (_, prop) in ascii_props {
+        tex = format!(r"\{}{{ {} }}", prop, tex);
+    }
+    Ok((s, Token::Symbol(tex)))
 }
 
 fn take_symbol_ascii(s: &str) -> IResult<&str, Token> {
-    use nom::{
-        character::complete::{alpha1, alphanumeric1, char},
-        combinator::opt,
-        multi::many0,
-        sequence::{pair, tuple},
-    };
-    //let mut props = vec![];
-    let (s, (_, not, tex, ascii_props)) = tuple((
+    let (s, (_, not, base, ascii_props)) = tuple((
         char('#'),
         opt(char('!')),
         alpha1,
         many0(pair(char('.'), alphanumeric1)),
     ))(s)?;
-    let tex = tex.to_string();
-    let mut props = vec![];
+    let mut tex = format!(r"\{}", base);
     if let Some(_) = not {
-        props.push("not".to_string());
+        tex = format!(r"\not{{ {} }}", tex);
     }
-    props.extend(ascii_props.into_iter().map(|(_, x)| x.to_string()));
-    Ok((s, Token::Symbol { tex, props }))
+    for (_, prop) in ascii_props {
+        tex = format!(r"\{}{{ {} }}", prop, tex);
+    }
+    Ok((s, Token::Symbol(tex)))
 }
 
-fn take_op_unicode() {}
+fn take_symbol(s: &str) -> IResult<&str, Token> {
+    alt((take_symbol_ascii, take_symbol_unicode))(s)
+}
 
-fn take_op_ascii() {}
+fn take_op_unicode(s: &str) -> IResult<&str, Token> {
+    let (s, (t, order)) = pair(one_of("√∛∜"), num_space)(s)?;
+    Ok((
+        s,
+        match t {
+            '√' => Token::Op {
+                tex: format!(r"\sqrt"),
+                order,
+            },
+            '∛' => Token::Op {
+                tex: format!(r"\sqrt[3]"),
+                order,
+            },
+            '∜' => Token::Op {
+                tex: format!(r"\sqrt[4]"),
+                order,
+            },
+            _ => unreachable!(),
+        },
+    ))
+}
+
+fn take_op_ascii(s: &str) -> IResult<&str, Token> {
+    let (s, (_, base, ascii_props, order)) = tuple((
+        char('@'),
+        alpha1,
+        many0(pair(char('.'), alphanumeric1)),
+        num_space,
+    ))(s)?;
+    let tex = format!(
+        r"\{}[{}]",
+        base,
+        ascii_props
+            .into_iter()
+            .map(|(_, x)| x.to_string())
+            .collect::<Vec<String>>()
+            .join(",")
+    );
+    Ok((s, Token::Op { tex, order }))
+}
+
+fn take_op(s: &str) -> IResult<&str, Token> {
+    alt((take_op_ascii, take_op_unicode))(s)
+}
+
 
 fn tokenize(input: &str) -> Vec<Token> {
     todo!()
