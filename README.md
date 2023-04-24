@@ -14,14 +14,19 @@
 |||| `a␣_b_c^d␣␣^e+f␣_g/h`
 | $a_{b_{c^d}}^e+\frac{f_g}{h}$ | `a_{b_{c^d}}^e+\frac{f_g}{h}` | `a_[b_[c^d]]^[e]+[f_g]/h` | `a␣␣_b␣_c^d␣␣^e␣␣+␣␣f_g/h`
 |||| `a␣␣_b␣_c^d␣␣^e␣+␣f_g/h`
-| $a$ | `a` | `a` | `a`, `#a`
-| $\alpha$ | `\alpha` | `alpha` | `α`, `#alpha`
-| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `#sqrt 2`, `#sqrt[2]`
-| $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `"abc"`
-| $\hat a$ | `\hat a` | `hat a` | `â`, `#hat a`, `"\hat a"L`, `a.hat`
-| $\\\#$ | `\#` | `#` | `##`, `"\#"L`
-| $\text{a"b"c\\\#"}$ | `\text{a"b"c\#"}` || `#="a"b"c#""=#`
-| $\mathbf{abc}$ | `\mathbf{abc}` | `bb"abc"` | `"abc"bb`, `#"abc"#bb`
+| $a$ | `a` | `a` | `a`, `<a>`
+| $\hat a$ | `\hat a` | `hat a` | `â`, `<@hat>a`, `<@hat><a>`, `<a.hat>`
+| $\alpha$ | `\alpha` | `alpha` | `α`, `<alpha>`
+| $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`, `<alpha hat!>`, `<!alpha hat>`, `<!α hat>`, `<!α̂>`, `<@not><@hat><alpha>` `α̸̂`
+| $\infty$ | `\infry` | `oo`, `infty` | `<infty>`, `.oo.`
+| $\dot\infty$ | `\dot\infty` | `dot oo`, `dot infty` | `<infty dot>`, `<.oo. dot>`
+| $<$ | `<` | `<` | `.<.`
+| $\not<$ | `\not<` | `cancel <` | `<.<. not>`, `<!.<.>`, `≮`
+| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `<@sqrt>2`, `<@sqrt>[2]`
+| $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `"abc"`, `` `[abc]` ``
+| $\text{ab]`c}$ | ``\text{ab]`c}`` || `` `=[ ab]`c ]=` ``
+| $\mathbf{abc}$ | `\mathbf{abc}` | `bb"abc"` | `"abc"b`
+| $\lVert a \rVert$ | `\lVert a \rVert` | `norm(a)` | `<<‖> a <‖>>`, `<<.\|\|.> a <.\|\|.>>`
 
 ## Lexer
 
@@ -38,10 +43,10 @@
 - supᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}\^[ ]{j}`
 - overᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}\^\^[ ]{j}`
 - underᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}__[ ]{j}`
-- fracᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}/[ ]{j}`
-- opⁱ
-  - rootⁱ: `(√|∛|∜|#sqrt|#root\.[1-9][0-9]*)[ ]{i}`
-  - typeⁱ: `(#ord|#op|#bin|#rel|#open|#close|#punct)[ ]{i}`
+- racᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}/[ ]{j}`
+- opⁱ: `@[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
+  - rootⁱ: `(√|∛|∜|@sqrt|@root\.[1-9][0-9]*)[ ]{i}`
+  - typeⁱ: `(@ord|@op|@bin|@rel|@open|@close|@punct)[ ]{i}`
 - open:
   - visible: `#[ #< #<|< #<||< #<‖< ( { ⟨ ⌈ ⌊ ⎰ ⌜ ⌞ ⟦`
   - invisible: `[`
@@ -49,7 +54,7 @@
   - visible: `#] #> #>|> #>||> #>‖> ) } ⟩ ⌉ ⌋ ⎱ ⌝ ⌟ ⟧`
   - invisible: `]`
 - num: `[0-9]+(\.[0-9]+)?`
-- literal: `\"(?!\")\"[a-zA-Z]*` or `#(=*)\"(?!\"\1#)\"\1#[a-zA-Z]*` or `'(?!')'[a-zA-Z]*` or `#(=*)'(?!'\1#)'\1#[a-zA-Z]*`
+- literal: `\"(?!\")\"[a-zA-Z]*` or `#(=*)\"(?!\"\1#)\"\1#[a-zA-Z]*`
 - symbol
   - `//`
   - `#[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
@@ -60,13 +65,14 @@
   - `#.>=.`
 - identifier: `(#|#!)?(char)(accent)*(\.[A-Za-z0-9]+)*`
   - char: single Unicode character
-    - `! $ % & ,  ; ? @`
+    - `! $ % & , ; ? @`
+    - `* + - : < = > |`
     - `[a-zA-Z]`
+    - `~`
     - `[𝐀-𝐙𝐚-𝐳𝟎-𝟗𝐴-𝑍𝑎-𝑧𝑨-𝒁𝒂-𝒛𝒜-𝒵𝔄-ℨ𝔞-𝔷𝔸-ℤ𝖠-𝖹𝖺-𝗓𝟢-𝟫𝗔-𝗭𝗮-𝘇𝟬-𝟵𝘈-𝘡𝘢-𝘻𝙰-𝚉𝚊-𝚣𝟶-𝟿𝕜]`
-    - `* + - : < = > | ~`
     - `± × ð ÷`
     - `Γ Δ Θ Λ Ξ Π Σ Υ Φ Ψ Ω α β γ δ ε ζ η θ ι κ λ μ ν ξ π ρ ς σ τ υ φ χ ψ ω ϑ ϕ ϖ ϝ ϱ ϵ`
-    - `† ‡ … ℏ ℑ Ⅎ ℵ ℶ ℷ ℸ ⅁`
+    - `† ‡ … ħ ℏ ℑ Ⅎ ℵ ℶ ℷ ℸ ⅁`
     - `← ↑ → ↓ ↔ ↕ ↖ ↗ ↘ ↙ ↞ ↠ ↢ ↣ ↦ ↩ ↪ ↫ ↬ ↭ ↰ ↱ ↶ ↷ ↺ ↻ ↼ ↽ ↾ ↿ ⇀ ⇁ ⇂ ⇃ ⇄ ⇆ ⇇ ⇈ ⇉ ⇊ ⇋ ⇌ ⇐ ⇑ ⇒ ⇓ ⇔ ⇕ ⇚ ⇛ ⇝ ⇠ ⇢`
     - `∀ ∁ ∂ ∃ ∅ ∆ ∇ ∈ ∊ ∋ ∍ ∎ ∏ ∐ ∑ − ∓ ∔ ∕ ∖ ∗ ∘ ∙ ∝ ∞ ∟ ∠ ∡ ∢ ∣ ∥ ∧ ∨ ∩ ∪ ∫ ∬ ∭ ∮ ∯ ∰ ∴ ∵`
     - `∶ ∷ ∸ ∹ ∺ ∻ ∼ ∽ ≀ ≂ ≃ ≅ ≆ ≈ ≊ ≍ ≎ ≏ ≐ ≑ ≒ ≓ ≔ ≕ ≖ ≗ ≘ ≙ ≚ ≛ ≜ ≝ ≞ ≟ ≡ ≤ ≥ ≦ ≧ ≨ ≩ ≪ ≫ ≬ ≲ ≳ ≶ ≷ ≺ ≻ ≼ ≽ ≾ ≿ ⊂ ⊃ ⊆ ⊇ ⊊ ⊋ ⊎ ⊏ ⊐ ⊑ ⊒ ⊓ ⊔`
@@ -77,8 +83,8 @@
     - `⌢ ⌣ ◯ ⟵ ⟶ ⟷ ⟸ ⟹ ⟺ ⟼ ⨀`
     - `⨁ ⨂ ⨄ ⨆ ⨿ ⩴ ⩽ ⩾ ⪅ ⪆ ⪇ ⪈ ⪉ ⪊ ⪋ ⪌ ⪕ ⪖ ⪯ ⪰ ⪵ ⪶ ⪷ ⪸ ⪹ ⪺ ⫅ ⫆ ⫋ ⫌`
   - accent
-    - grave: `Combining Grave Accent`
-    - acute: `Combining Acute Accent`
+    - grave: `Combining Grave Accent` '\u{0300}'
+    - acute: `Combining Acute Accent` '\u{0301}'
     - hat: `Combining Circumflex Accent`
     - tilde: `Combining Tilde`
     - bar: `Combining Macron`
@@ -86,13 +92,9 @@
     - breve: `Combining Breve`
     - dot: `Combining Dot Above`
     - ddot: `Combining Diaeresis`
-    - ovhook: `Combining Hook Above`
-    - ocirc: `Combining Ring Above`
-    - H: `Combining Double Acute Accent`
+    - mathring: `Combining Ring Above`
     - check: `Combining Caron`
-    - utilde: `Combining Tilde Below`
-    - underbar: `Combining Low Line`
-    - sout: `Combining Long Stroke Overlay`
+    - underline: `Combining Low Line`
     - not: `Combining Long Solidus Overlay`
     - underleftrightarrow: `Combining Left Right Arrow Below`
   - `(#|#!)/(accent)*(\.[A-Za-z0-9]+)*`
@@ -109,5 +111,5 @@ intermediateⁱ = simpⁱ, [overⁱ simpⁱ], [underⁱ simpⁱ], [supⁱ simp�
 simpⁱ = const | parened | unary_exprⁱ | mathⁱ⁻¹;
 unary_exprⁱ = opⁱ, simpⁱ⁻¹;
 parened = open, maspace, close;
-const = num | literal | symbol | identifier;
+const = num | literal | symbol;
 ```
