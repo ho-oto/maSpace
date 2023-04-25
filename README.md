@@ -15,14 +15,15 @@
 | $a_{b_{c^d}}^e+\frac{f_g}{h}$ | `a_{b_{c^d}}^e+\frac{f_g}{h}` | `a_[b_[c^d]]^[e]+[f_g]/h` | `a␣␣_b␣_c^d␣␣^e␣␣+␣␣f_g/h`
 |||| `a␣␣_b␣_c^d␣␣^e␣+␣f_g/h`
 | $a$ | `a` | `a` | `a`, `<a>`
-| $\hat a$ | `\hat a` | `hat a` | `â`, `<@hat>a`, `<@hat><a>`, `<a.hat>`
+| $\hat a$ | `\hat a` | `hat a` | `â`, `<<hat>>a`, `<<hat>><a>`, `<a.hat>`
 | $\alpha$ | `\alpha` | `alpha` | `α`, `<alpha>`
-| $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`, `<alpha hat!>`, `<!alpha hat>`, `<!α hat>`, `<!α̂>`, `<@not><@hat><alpha>` `α̸̂`
+| $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`, `<alpha hat!>`, `<!alpha hat>`, `<!α hat>`, `<!α̂>`, `<<not>><<hat>><alpha>` `α̸̂`
 | $\infty$ | `\infry` | `oo`, `infty` | `<infty>`, `.oo.`
 | $\dot\infty$ | `\dot\infty` | `dot oo`, `dot infty` | `<infty dot>`, `<.oo. dot>`
 | $<$ | `<` | `<` | `.<.`
 | $\not<$ | `\not<` | `cancel <` | `<.<. not>`, `<!.<.>`, `≮`
-| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `<@sqrt>2`, `<@sqrt>[2]`
+| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `<<sqrt>>2`, `<<sqrt>>[2]`
+| $\sqrt{3+4}$ | `\sqrt{3+4}` | `sqrt[3+4]` | `√ 3+4`, `√[3+4]`, `<<sqrt>> 3+4`, `<<sqrt>>[3+4]`
 | $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `"abc"`, `` `[abc]` ``
 | $\text{ab]`c}$ | ``\text{ab]`c}`` || `` `=[ ab]`c ]=` ``
 | $\mathbf{abc}$ | `\mathbf{abc}` | `bb"abc"` | `"abc"b`
@@ -44,25 +45,26 @@
 - overᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}\^\^[ ]{j}`
 - underᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}__[ ]{j}`
 - racᵐᵃˣ⁽ⁱ⁾⁽ʲ⁾: `[ ]{i}/[ ]{j}`
-- opⁱ: `@[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
-  - rootⁱ: `(√|∛|∜|@sqrt|@root\.[1-9][0-9]*)[ ]{i}`
-  - typeⁱ: `(@ord|@op|@bin|@rel|@open|@close|@punct)[ ]{i}`
+- opⁱ: `(√|∛|∜|<\+[a-zA-Z]+( [a-zA-Z0-9]+)*>)[ ]{i}`
+  - rootⁱ: `(√|∛|∜|<<sqrt>>|<<root[0-9]+>>)[ ]{i}`
+  - typeⁱ: `(<<ord>>|<<op>>|<<bin>>|<<rel>>|<<open>>|<<close>>|<<punct>>)[ ]{i}`
 - open:
-  - visible: `#[ #< #<|< #<||< #<‖< ( { ⟨ ⌈ ⌊ ⎰ ⌜ ⌞ ⟦`
+  - visible: `.[. <<[> <<.<.> <<|> <<||> <<‖> ( { ⟨ ⌈ ⌊ ⎰ ⌜ ⌞ ⟦`
   - invisible: `[`
 - close:
-  - visible: `#] #> #>|> #>||> #>‖> ) } ⟩ ⌉ ⌋ ⎱ ⌝ ⌟ ⟧`
+  - visible: `.]. <]>> <.>.>> <.>.>> <||>> <‖>> ) } ⟩ ⌉ ⌋ ⎱ ⌝ ⌟ ⟧`
   - invisible: `]`
 - num: `[0-9]+(\.[0-9]+)?`
 - literal: `\"(?!\")\"[a-zA-Z]*` or `#(=*)\"(?!\"\1#)\"\1#[a-zA-Z]*`
 - symbol
-  - `//`
-  - `#[a-zA-Z]+(\.[a-zA-Z0-9]+)*`
-  - `#.||.`
-  - `#.<-.`
-  - `#.->.`
-  - `#.<=.`
-  - `#.>=.`
+  - `./.`
+  - `.||.`
+  - `.<-.`
+  - `.->.`
+  - `.<.`
+  - `.<=.`
+  - `.>.`
+  - `.>=.`
 - identifier: `(#|#!)?(char)(accent)*(\.[A-Za-z0-9]+)*`
   - char: single Unicode character
     - `! $ % & , ; ? @`
