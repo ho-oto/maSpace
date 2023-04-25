@@ -8,26 +8,53 @@
 | $a+\frac{b}{c}$ | `a+\frac{b}{c}` | `a+b/c` | `a+b/c`
 | $a_{b^c}$ | `a_{b^c}` | `a_(b^c)` | `a␣_b^c`
 | $a_b^c$ | `a_b^c` | `a_b^c` | `a_b^c`
-| $\frac{a_{b_c}^{d^{e+f}_g}}{h}$ | `\frac{a_{b_c}^{d^{e+f}_g}}{h}` | `a_[b_c]^[d_g^[e+f]]/h` | `a␣_b_c␣␣^d␣^e+f␣_g␣␣/h`
-|||| `a␣_b_c␣^d^[e+f]_g␣/h`
-| $a_{b_c^d}^{e+f_{\frac{g}{h}}}$ | `a_{b_c^d}^{e+f_{\frac{g}{h}}}` | `a_[b_c^d]^[e+f_[g/h]]` | `a␣_b_c^d␣^[e+f␣_g/h]`
-|||| `a␣_b_c^d␣␣^e+f␣_g/h`
-| $a_{b_{c^d}}^e+\frac{f_g}{h}$ | `a_{b_{c^d}}^e+\frac{f_g}{h}` | `a_[b_[c^d]]^[e]+[f_g]/h` | `a␣␣_b␣_c^d␣␣^e␣␣+␣␣f_g/h`
-|||| `a␣␣_b␣_c^d␣␣^e␣+␣f_g/h`
-| $a$ | `a` | `a` | `a`, `<a>`
-| $\hat a$ | `\hat a` | `hat a` | `â`, `<<hat>>a`, `<<hat>><a>`, `<a.hat>`
-| $\alpha$ | `\alpha` | `alpha` | `α`, `<alpha>`
-| $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`, `<alpha hat!>`, `<!alpha hat>`, `<!α hat>`, `<!α̂>`, `<<not>><<hat>><alpha>` `α̸̂`
-| $\infty$ | `\infry` | `oo`, `infty` | `<infty>`, `.oo.`
-| $\dot\infty$ | `\dot\infty` | `dot oo`, `dot infty` | `<infty dot>`, `<.oo. dot>`
+| $\frac{a_{b_c}^{d^{e+f}_g}}{h}$ | `\frac{a_{b_c}^{d^{e+f}_g}}{h}` | `a_[b_c]^[d_g^[e+f]]/h` | `a _b_c  ^d ^e+f _g  /h` (`a␣_b_c␣␣^d␣^e+f␣_g␣␣/h`)
+|||| `a _b_c ^d^[e+f]_g /h` (`a␣_b_c␣^d^[e+f]_g␣/h`)
+| $a_{b_c^d}^{e+f_{\frac{g}{h}}}$ | `a_{b_c^d}^{e+f_{\frac{g}{h}}}` | `a_[b_c^d]^[e+f_[g/h]]` | `a _b_c^d ^[e+f _g/h]` (`a␣_b_c^d␣^[e+f␣_g/h]`)
+|||| `a _b_c^d  ^e+f _g/h` (`a␣_b_c^d␣␣^e+f␣_g/h`)
+| $a_{b_{c^d}}^e+\frac{f_g}{h}$ | `a_{b_{c^d}}^e+\frac{f_g}{h}` | `a_[b_[c^d]]^[e]+[f_g]/h` | `a  _b _c^d  ^e  +  f_g/h` (`a␣␣_b␣_c^d␣␣^e␣␣+␣␣f_g/h`)
+|||| `a  _b _c^d  ^e + f_g/h` (`a␣␣_b␣_c^d␣␣^e␣+␣f_g/h`)
+| $a$ | `a` | `a` | `a`
+|||| `<a>`
+| $\hat a$ | `\hat a` | `hat a` | `â`
+|||| `<<hat>>a`
+|||| `<<hat>><a>`
+|||| `<a hat>`
+| $\alpha$ | `\alpha` | `alpha` | `α`
+|||| `<alpha>`
+| $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`
+|||| `<alpha hat!>`
+|||| `<!alpha hat>`
+|||| `<!α hat>`
+|||| `<!α̂>`
+|||| `<<not>><<hat>><alpha>`
+|||| `α̸̂`
+| $\infty$ | `\infry` | `infty` | `<infty>`
+||| `oo` | `.oo.`
+|||| `∞`
+| $\dot\infty$ | `\dot\infty` | `dot infty` | `<infty dot>`
+||| `dot oo` | `<.oo. dot>`
+|||| `<∞ dot>`
 | $<$ | `<` | `<` | `.<.`
-| $\not<$ | `\not<` | `cancel <` | `<.<. not>`, `<!.<.>`, `≮`
-| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2`, `sqrt[2]` | `√2`, `<<sqrt>>2`, `<<sqrt>>[2]`
-| $\sqrt{3+4}$ | `\sqrt{3+4}` | `sqrt[3+4]` | `√ 3+4`, `√[3+4]`, `<<sqrt>> 3+4`, `<<sqrt>>[3+4]`
-| $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `"abc"`, `` `[abc]` ``
-| $\text{ab]`c}$ | ``\text{ab]`c}`` || `` `=[ ab]`c ]=` ``
-| $\mathbf{abc}$ | `\mathbf{abc}` | `bb"abc"` | `"abc"b`
-| $\lVert a \rVert$ | `\lVert a \rVert` | `norm(a)` | `<<‖> a <‖>>`, `<<.\|\|.> a <.\|\|.>>`
+| $\not<$ | `\not<` | `cancel <` | `<.<. not>`
+|||| `<!.<.>`
+|||| `≮`
+| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2` | `<<sqrt>>2`
+||| `sqrt[2]` | `<<sqrt>>[2]`
+|||| `√2`
+| $\sqrt{3+4}$ | `\sqrt{3+4}` | `sqrt[3+4]` | `√ 3+4`
+|||| `√[3+4]`
+|||| `<<sqrt>> 3+4`
+|||| `<<sqrt>>[3+4]`
+| $\lVert a \rVert$ | `\lVert a \rVert` | `norm(a)` | `<<norm>>a`
+|||| `<<‖> a <‖>>`
+|||| `<<.\|\|.> a <.\|\|.>>`
+| $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `<"abc" rm>`
+|||| `"abc"`
+|||| `` `rm<abc>` ``
+|||| `` `<abc>rm` ``
+| $\mathbf{ab>.`c}$ | ``\mathbf{ab>.`c}`` || `` `bf..< ab>.`c >..` ``
+|||| `` `..< ab>.`c >..bf` ``
 
 ## Lexer
 
@@ -36,6 +63,19 @@
 3. tokenize
 4. insert virtual cat⁰ between connected symbols with no spaces
 5. transform unicode_sub and unicode_sup to ASCII
+
+## Grammer
+
+```ebnf
+maspace = mathᵒᵒ;
+mathⁱ = exprⁱ, (catⁱ, exprⁱ)*;
+exprⁱ = intermediateⁱ, [fracⁱ, intermediateⁱ];
+intermediateⁱ = simpⁱ, [overⁱ simpⁱ], [underⁱ simpⁱ], [supⁱ simpⁱ], [subⁱ simpⁱ];
+simpⁱ = const | parened | unary_exprⁱ | mathⁱ⁻¹;
+unary_exprⁱ = opⁱ, simpⁱ⁻¹;
+parened = open, maspace, close;
+const = num | literal | symbol;
+```
 
 ### Tokens
 
@@ -65,10 +105,10 @@
   - `.<=.`
   - `.>.`
   - `.>=.`
-- identifier: `(#|#!)?(char)(accent)*(\.[A-Za-z0-9]+)*`
+- identifier: `(char)(accent)*` or `<(!)?((char)|[a-zA-Z][a-zA-Z0-9]*)(accent)*( [a-zA-Z]+)*(!)?>`
   - char: single Unicode character
     - `! $ % & , ; ? @`
-    - `* + - : < = > |`
+    - `* + - : = |`
     - `[a-zA-Z]`
     - `~`
     - `[𝐀-𝐙𝐚-𝐳𝟎-𝟗𝐴-𝑍𝑎-𝑧𝑨-𝒁𝒂-𝒛𝒜-𝒵𝔄-ℨ𝔞-𝔷𝔸-ℤ𝖠-𝖹𝖺-𝗓𝟢-𝟫𝗔-𝗭𝗮-𝘇𝟬-𝟵𝘈-𝘡𝘢-𝘻𝙰-𝚉𝚊-𝚣𝟶-𝟿𝕜]`
@@ -102,16 +142,3 @@
   - `(#|#!)/(accent)*(\.[A-Za-z0-9]+)*`
 - unicode_sub: `₊₋₌₍₎₀₁₂₃₄₅₆₇₈₉ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓᵦᵧᵨᵩᵪ`
 - unicode_sup: `⁺⁻⁼⁽⁾⁰¹²³⁴⁵⁶⁷⁸⁹ᵃᵇᶜᵈᵉᵍʰⁱʲᵏˡᵐⁿᵒᵖʳˢᵗᵘʷˣʸᶻᵛᵝᵞᵟᵠᵡ`
-
-## Grammer
-
-```ebnf
-maspace = mathᵒᵒ;
-mathⁱ = exprⁱ, (catⁱ, exprⁱ)*;
-exprⁱ = intermediateⁱ, [fracⁱ, intermediateⁱ];
-intermediateⁱ = simpⁱ, [overⁱ simpⁱ], [underⁱ simpⁱ], [supⁱ simpⁱ], [subⁱ simpⁱ];
-simpⁱ = const | parened | unary_exprⁱ | mathⁱ⁻¹;
-unary_exprⁱ = opⁱ, simpⁱ⁻¹;
-parened = open, maspace, close;
-const = num | literal | symbol;
-```
