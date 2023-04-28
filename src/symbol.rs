@@ -586,7 +586,6 @@ fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
     format!(
         r"\{}",
         match s {
-            "!" => "not",
             _ => s,
         }
     )
@@ -596,6 +595,7 @@ fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
     format!(
         r"\{}",
         match s {
+            "!" => "not",
             _ => s,
         }
     )
