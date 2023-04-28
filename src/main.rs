@@ -160,31 +160,6 @@ fn symbol_alphabet(s: &str) -> IResult<&str, Token> {
     todo!()
 }
 
-fn escaped_tex_string(s: Vec<char>) -> String {
-    let mut rsl = "".to_string();
-    for c in s {
-        match c {
-            '#' | '$' | '%' | '_' | '{' | '}' => {
-                rsl.push('\\');
-                rsl.push(c)
-            }
-            '~' => rsl.push_str(r"{\textasciitilde}"),
-            '^' => rsl.push_str(r"{\textasciicircum}"),
-            '\\' => rsl.push_str(r"{\backslash}"),
-            _ => rsl.push(c),
-        }
-    }
-    rsl
-}
-
-fn take_string_literal_(s: &str) -> IResult<&str, Token> {
-    let (s, l) = delimited(char('"'), many0(none_of("\"")), char('"'))(s)?;
-    let (s, suffix) = alpha0(s)?;
-    let literal = escaped_tex_string(l);
-    let suffix = expand_abbred_literal_suffix(suffix);
-    Ok((s, Token::Symbol(format!(r"\{}{{ {} }}", suffix, literal))))
-}
-
 fn take_number(s: &str) -> IResult<&str, Token> {
     let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
     if let Some((_, y)) = y {

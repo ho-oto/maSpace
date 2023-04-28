@@ -2,57 +2,59 @@ use super::token::Token;
 
 use nom::{
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{alpha0, alpha1, alphanumeric1, anychar, char, digit1, none_of, one_of},
-    combinator::{map, map_res, not, opt, peek},
-    error::ParseError,
-    multi::{fold_many0, many0, many1},
-    sequence::{delimited, pair, tuple},
-    IResult, Parser,
+    bytes::complete::{is_a, tag, take_until},
+    character::complete::{alpha1, alphanumeric1, anychar, char},
+    combinator::{map, map_res},
+    multi::{count, many0, many1, many_till},
+    sequence::{pair, tuple},
+    IResult,
 };
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
 fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
-    let (s, _) = tuple((
+    let (s, (mut tex, accents)) = tuple((
         map_res(anychar, tex_of_char),
         many0(map_res(anychar, tex_of_unicode_accent)),
     ))(s)?;
-    todo!()
+    for accent in accents {
+        tex = format!("{}{{ {} }}", accent, tex);
+    }
+    Ok((s, tex))
 }
 
 fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
-    todo!()
-}
-
-fn take_string_literal(s: &str) -> IResult<&str, String> {
-    todo!()
-}
-
-fn take_raw_string_literal(s: &str) -> IResult<&str, String> {
-    todo!()
-}
-
-fn take_symbol_string(s: &str) -> IResult<&str, String> {
-    let (s, t) = alpha1(s)?;
-    Ok((s, t.to_string()))
-}
-
-fn take_accent_of_symbol(s: &str) -> IResult<&str, String> {
-    todo!()
+    let (s, (_, tex, _)) = tuple((
+        char('.'),
+        map_res(take_until("."), tex_of_ascii_art),
+        char('.'),
+    ))(s)?;
+    Ok((s, tex))
 }
 
 fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
+    //! `symbol_with_accent` is
+    //!
+    //! `<({char_with_unicode_accent}|{ascii_art}|{symbol_name})( +{accent_name})*>`
+    //!
+    //! where
+    //! - `symbol_name` is `([A-Za-z]+)`
+    //! - `ascii_art` is `(\.[^\.]+\.)`
+    //! - `accent_name` is `!|[A-Za-z0-9]+`
     let (s, (_, mut tex, accents, _)) = tuple((
         char('<'),
         alt((
-            take_symbol_string,
-            take_string_literal,
-            take_raw_string_literal,
             take_symbol_from_single_char,
             take_symbol_from_ascii_art,
+            map(alpha1, tex_of_maybe_abbreviated_symbol_name),
         )),
-        many0(pair(many1(char(' ')), take_accent_of_symbol)),
+        many0(pair(
+            is_a(" "),
+            map(
+                alt((alphanumeric1, tag("!"))),
+                tex_of_maybe_abbreviated_accent_name,
+            ),
+        )),
         char('>'),
     ))(s)?;
     for (_, accent) in accents {
@@ -62,19 +64,64 @@ fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
 }
 
 fn take_symbol(s: &str) -> IResult<&str, Token> {
+    //! `symbol` is
+    //!
+    //! `({char_with_unicode_accent}|{ascii_art}|{symbol_with_accent})'*`
+    //!
+    //! where
+    //! - `ascii_art` is `(\.[^\.]+\.)`
     let (s, (t, u)) = pair(
         alt((
             take_symbol_with_accent,
-            take_string_literal,
             take_symbol_from_single_char,
             take_symbol_from_ascii_art,
         )),
-        many0(char('\'')),
+        is_a("'"),
     )(s)?;
-    Ok((
-        s,
-        Token::Symbol(format!("{}{}", t, u.into_iter().collect::<String>())),
-    ))
+    Ok((s, Token::Symbol(format!("{}{}", t, u))))
+}
+
+fn take_string_literal_content(s: &str) -> IResult<&str, String> {
+    let (s, (_, content, _)) = alt((
+        tuple((char('"'), take_until(r#"""#), char('"'))),
+        tuple((char('`'), take_until("`"), char('`'))),
+    ))(s)?;
+    Ok((s, content.to_string()))
+}
+
+fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
+    let (s, (sharps, _)) = pair(many1(char('#')), char('"'))(s)?;
+    let (s, (content, _)) = many_till(anychar, pair(count(char('#'), sharps.len()), char('"')))(s)?;
+    Ok((s, content.into_iter().collect()))
+}
+
+fn escape_tex_string_math(s: &str) -> String {
+    let mut rsl = "".to_string();
+    for c in s.chars() {
+        match c {
+            '#' | '$' | '%' | '_' | '{' | '}' => {
+                rsl.push('\\');
+                rsl.push(c)
+            }
+            '~' => rsl.push_str(r"{\textasciitilde}"),
+            '^' => rsl.push_str(r"{\textasciicircum}"),
+            '\\' => rsl.push_str(r"{\backslash}"),
+            _ => rsl.push(c),
+        }
+    }
+    rsl
+}
+
+fn escape_tex_string_text(s: &str) -> String {
+    s.chars()
+        .into_iter()
+        .map(|c| match c {
+            '$' | '{' | '}' | '\\' => {
+                format!(r"\{}", c)
+            }
+            _ => c.to_string(),
+        })
+        .collect()
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
@@ -92,11 +139,13 @@ fn tex_of_char(c: char) -> Result<String, ()> {
 
     Ok(match c {
         // - ASCII
-        '@' | '!' | '*' | '+' | ',' | '-' | ':' | ';' | '=' | '?' | '|' => raw(c),
+        '!' | '*' | '+' | ',' | '-' | ':' | ';' | '=' | '?' | '@' | '|' => raw(c),
         'A'..='Z' | 'a'..='z' => raw(c),
         '#' | '$' | '%' | '&' => sym(c),
         '\\' => sym("backslash"),
         '~' => sym("sim"),
+        // rest:
+        //   ␠, ", ', (, ), ., /, 0-9, <, >, [, ], ^, _, `, {, }
         // - Greek alphabets
         //   * capital
         'Α' => sym("Alpha"),
@@ -512,20 +561,44 @@ fn tex_of_unicode_accent(c: char) -> Result<String, ()> {
 
 fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
     Ok(match s {
+        "!=" => r"\ne",
         "->" => r"\leftarrow",
         "<-" => r"\rightarrow",
-        "=->" => r"\Leftarrow",
-        "<-=" => r"\Rightarrow",
+        "=>" => r"\Rightarrow",
+        "=->" => r"\Rightarrow",
+        "-=>" => r"\Rightarrow",
+        "<-=" => r"\Leftarrow",
+        "<=-" => r"\Leftarrow",
         "<" => "<",
         "<=" => r"\le",
         ">" => ">",
         ">=" => r"\re",
         "||" => r"\|",
+        "/" => "/",
         "x" => r"\times",
         "oo" => r"\infty",
         _ => return Err(()),
     }
     .to_string())
+}
+
+fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
+    format!(
+        r"\{}",
+        match s {
+            "!" => "not",
+            _ => s,
+        }
+    )
+}
+
+fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
+    format!(
+        r"\{}",
+        match s {
+            _ => s,
+        }
+    )
 }
 
 #[cfg(test)]
