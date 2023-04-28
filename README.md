@@ -51,10 +51,9 @@
 |||| `<<.\|\|.> a <.\|\|.>>`
 | $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `<"abc" rm>`
 |||| `"abc"`
-|||| `<\| abc \|>`
-|||| `<\|\| abc \|\|>`
-|||| `<\|\|\| abc \|\|\| rm>`
-| $\mathbf{ab\|."c}$ | ``\mathbf{ab\|."c}`` || `<\|\| ab\|."c \|\| rm>`
+|||| `<r#"abc">`
+|||| `<r##"abc"## rm>`
+| $\mathbf{ab\#"c}$ | ``\mathbf{ab#"c}`` || `<r##"ab"#c"## rm>`
 
 ## Lexer
 
