@@ -4,9 +4,9 @@
 
 | Result | LaTeX | AsciiMath | maSpace |
 |-|-|-|-|
-| $\frac{a+b}{c}$ | `\frac{a+b}{c}` | `(a+b)/c` | `a+b␣/c`
+| $\frac{a+b}{c}$ | `\frac{a+b}{c}` | `(a+b)/c` | `a+b /c` (`a+b␣/c`)
 | $a+\frac{b}{c}$ | `a+\frac{b}{c}` | `a+b/c` | `a+b/c`
-| $a_{b^c}$ | `a_{b^c}` | `a_(b^c)` | `a␣_b^c`
+| $a_{b^c}$ | `a_{b^c}` | `a_(b^c)` | `a _b^c` (`a␣_b^c`)
 | $a_b^c$ | `a_b^c` | `a_b^c` | `a_b^c`
 | $\frac{a_{b_c}^{d^{e+f}_g}}{h}$ | `\frac{a_{b_c}^{d^{e+f}_g}}{h}` | `a_[b_c]^[d_g^[e+f]]/h` | `a _b_c  ^d ^e+f _g  /h` (`a␣_b_c␣␣^d␣^e+f␣_g␣␣/h`)
 |||| `a _b_c ^d^[e+f]_g /h` (`a␣_b_c␣^d^[e+f]_g␣/h`)
@@ -53,7 +53,7 @@
 |||| `"abc"`
 |||| `<r#"abc">`
 |||| `<r##"abc"## rm>`
-| $\mathbf{ab\\\#"c}$ | ``\mathbf{ab#"c}`` || `<r##"ab"#c"## rm>`
+| $\mathbf{ab\\\#"c}$ | ``\mathbf{ab#"c}`` || `<r##"ab"#c"## bf>`
 
 ## Lexer
 
