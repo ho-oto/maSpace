@@ -3,8 +3,8 @@ use super::token::Token;
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take_until},
-    character::complete::{alpha1, alphanumeric1, anychar, char, satisfy},
-    combinator::{map, map_res},
+    character::complete::{alpha0, alphanumeric1, anychar, char, digit1, satisfy},
+    combinator::{map, map_res, opt},
     multi::{count, many0, many1, many_m_n, many_till},
     sequence::{pair, tuple},
     IResult,
@@ -18,7 +18,7 @@ fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
         many0(map_res(anychar, tex_of_unicode_accent)),
     )(s)?;
     for accent in accents {
-        tex = format!("{}{{ {} }}", accent, tex);
+        tex = format!("{}{{{}}}", accent, tex);
     }
     Ok((s, tex))
 }
@@ -32,7 +32,7 @@ fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
     Ok((s, tex))
 }
 
-fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
+fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     //! `symbol_with_accent` is
     //!
     //! `<({char_with_unicode_accent}|{ascii_art}|{symbol_name})( +{accent_name})*>`
@@ -45,11 +45,11 @@ fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
         char('<'),
         many0(char(' ')),
         alt((
-            take_symbol_from_ascii_art,
             map(
                 many_m_n(2, usize::MAX, satisfy(|x| x.is_alphabetic())),
                 |x| tex_of_maybe_abbreviated_symbol_name(&x.into_iter().collect::<String>()),
             ),
+            take_symbol_from_ascii_art,
             take_symbol_from_single_char,
         )),
         many0(pair(
@@ -63,7 +63,7 @@ fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
         char('>'),
     ))(s)?;
     for (_, accent) in accents {
-        tex = format!("{}{{ {} }}", accent, tex);
+        tex = format!("{}{{{}}}", accent, tex);
     }
     Ok((s, tex))
 }
@@ -77,7 +77,7 @@ pub fn take_symbol(s: &str) -> IResult<&str, Token> {
     //! - `ascii_art` is `(\.[^\.]+\.)`
     let (s, (t, u)) = pair(
         alt((
-            take_symbol_with_accent,
+            take_symbol_in_angle_brackets,
             take_symbol_from_single_char,
             take_symbol_from_ascii_art,
         )),
@@ -96,7 +96,7 @@ fn take_string_literal_content(s: &str) -> IResult<&str, String> {
 
 fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
     let (s, (sharps, _)) = pair(many1(char('#')), char('"'))(s)?;
-    let (s, (content, _)) = many_till(anychar, pair(count(char('#'), sharps.len()), char('"')))(s)?;
+    let (s, (content, _)) = many_till(anychar, pair(char('"'), count(char('#'), sharps.len())))(s)?;
     Ok((s, content.into_iter().collect()))
 }
 
@@ -140,12 +140,12 @@ pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
                 many0(char(' ')),
                 alt((take_string_literal_content, take_raw_string_literal_content)),
                 many0(char(' ')),
-                alpha1,
+                alpha0,
                 many0(char(' ')),
                 char('>'),
             )),
             |(_, _, c, _, v, _, _)| match v {
-                "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
+                "" | "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
                 "bf" | "mathbf" => Ok((escape_tex_string_math(&c), r"\mathbf")),
                 "bb" | "mathbb" => Ok((escape_tex_string_math(&c), r"\mathbb")),
                 "ca" | "mathcal" => Ok((escape_tex_string_math(&c), r"\mathcal")),
@@ -158,6 +158,19 @@ pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
         ),
     ))(s)?;
     Ok((s, Token::Symbol(format!("{}{{{}}}", u, t))))
+}
+
+pub fn take_number(s: &str) -> IResult<&str, Token> {
+    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
+    if let Some((_, y)) = y {
+        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
+    } else {
+        Ok((s, Token::Symbol(x.to_string())))
+    }
+}
+
+pub fn take_constant(s: &str) -> IResult<&str, Token> {
+    alt((take_symbol, take_string_literal, take_number))(s)
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
@@ -643,28 +656,86 @@ mod tests {
 
     #[test]
     fn test_take_symbol() {
-        assert_eq!(take_symbol_from_single_char("aΓ").unwrap(), (r"Γ", r"a".to_string()));
+        assert_eq!(
+            take_symbol_from_single_char("aΓ").unwrap(),
+            (r"Γ", r"a".to_string())
+        );
         assert_eq!(take_symbol_from_single_char("Γa").unwrap().1, r"\Gamma");
         assert_eq!(
             take_symbol_from_single_char("α̇").unwrap().1,
-            r"\dot{ \alpha }"
+            r"\dot{\alpha}"
         );
-        assert_eq!(take_symbol_with_accent("<a>").unwrap().1, "a");
-        assert_eq!(take_symbol_with_accent("<a dot>").unwrap().1, r"\dot{ a }");
+        assert_eq!(take_symbol_in_angle_brackets("<a>").unwrap().1, "a");
         assert_eq!(
-            take_symbol_with_accent("<a dot !>").unwrap().1,
-            r"\not{ \dot{ a } }"
+            take_symbol_in_angle_brackets("<a dot>").unwrap().1,
+            r"\dot{a}"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("<a dot !>").unwrap().1,
+            r"\not{\dot{a}}"
         );
         assert_eq!(take_symbol_from_ascii_art(".oo.").unwrap().1, r"\infty");
         assert_eq!(
-            take_symbol_with_accent("<α̇ tilde !>").unwrap().1,
-            r"\not{ \tilde{ \dot{ \alpha } } }"
+            take_symbol_in_angle_brackets("<α̇ tilde !>").unwrap().1,
+            r"\not{\tilde{\dot{\alpha}}}"
         );
         assert_eq!(
-            take_symbol_with_accent("<.oo. !>").unwrap().1,
-            r"\not{ \infty }"
+            take_symbol_in_angle_brackets("<.oo. !>").unwrap().1,
+            r"\not{\infty}"
         );
-        assert_eq!(take_symbol_with_accent("<alpha>").unwrap().1, r"\alpha");
-        assert_eq!(take_symbol_with_accent("<alpha dot>").unwrap().1, r"\dot{ \alpha }");
+        assert_eq!(
+            take_symbol_in_angle_brackets("<alpha>").unwrap().1,
+            r"\alpha"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("<alpha dot>").unwrap().1,
+            r"\dot{\alpha}"
+        );
+    }
+
+    #[test]
+    fn test_take_literal() {
+        assert_eq!(
+            take_raw_string_literal_content(r###"##"aa"#Ba"##"###)
+                .unwrap()
+                .1,
+            r##"aa"#Ba"##
+        );
+        assert_eq!(
+            take_string_literal(r#""aaa""#).unwrap().1,
+            Token::Symbol(r"\mathrm{aaa}".to_string())
+        );
+        assert_eq!(
+            take_string_literal("`aa\"a`").unwrap().1,
+            Token::Symbol(r#"\mathrm{aa"a}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"<"aaa">"#).unwrap().1,
+            Token::Symbol(r#"\mathrm{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"< "aaa"  >"#).unwrap().1,
+            Token::Symbol(r#"\mathrm{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r####"< ##"aaa"## te  >"####).unwrap().1,
+            Token::Symbol(r#"\text{aaa}"#.to_string())
+        );
+    }
+
+    #[test]
+    fn test_take_number() {
+        assert_eq!(
+            take_number("0.1234ABC").unwrap().1,
+            Token::Symbol("0.1234".to_string())
+        );
+        assert_eq!(
+            take_number("0A1B3C").unwrap().1,
+            Token::Symbol("0".to_string())
+        );
+        assert_eq!(
+            take_number("0 1 3").unwrap().1,
+            Token::Symbol("0".to_string())
+        );
     }
 }
