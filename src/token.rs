@@ -1,3 +1,4 @@
+#[derive(Debug, PartialEq, Eq)]
 pub enum Token {
     Cat(usize),
     Sub(usize),

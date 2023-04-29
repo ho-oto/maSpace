@@ -13,10 +13,10 @@ use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
 
 fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
-    let (s, (mut tex, accents)) = tuple((
+    let (s, (mut tex, accents)) = pair(
         map_res(anychar, tex_of_char),
         many0(map_res(anychar, tex_of_unicode_accent)),
-    ))(s)?;
+    )(s)?;
     for accent in accents {
         tex = format!("{}{{ {} }}", accent, tex);
     }
@@ -41,29 +41,31 @@ fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
     //! - `symbol_name` is `([A-Za-z]+)`
     //! - `ascii_art` is `(\.[^\.]+\.)`
     //! - `accent_name` is `!|[A-Za-z0-9]+`
-    let (s, (_, mut tex, accents, _)) = tuple((
+    let (s, (_, _, mut tex, accents, _, _)) = tuple((
         char('<'),
+        many0(char(' ')),
         alt((
             take_symbol_from_single_char,
             take_symbol_from_ascii_art,
             map(alpha1, tex_of_maybe_abbreviated_symbol_name),
         )),
         many0(pair(
-            is_a(" "),
+            many1(char(' ')),
             map(
                 alt((alphanumeric1, tag("!"))),
                 tex_of_maybe_abbreviated_accent_name,
             ),
         )),
+        many0(char(' ')),
         char('>'),
     ))(s)?;
     for (_, accent) in accents {
-        tex = format!(r"{}{{ {} }}", accent, tex);
+        tex = format!("{}{{ {} }}", accent, tex);
     }
     Ok((s, tex))
 }
 
-fn take_symbol(s: &str) -> IResult<&str, Token> {
+pub fn take_symbol(s: &str) -> IResult<&str, Token> {
     //! `symbol` is
     //!
     //! `({char_with_unicode_accent}|{ascii_art}|{symbol_with_accent})'*`
@@ -78,12 +80,12 @@ fn take_symbol(s: &str) -> IResult<&str, Token> {
         )),
         is_a("'"),
     )(s)?;
-    Ok((s, Token::Symbol(format!("{}{}", t, u))))
+    Ok((s, Token::Symbol(t + u)))
 }
 
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
     let (s, (_, content, _)) = alt((
-        tuple((char('"'), take_until(r#"""#), char('"'))),
+        tuple((char('"'), take_until("\""), char('"'))),
         tuple((char('`'), take_until("`"), char('`'))),
     ))(s)?;
     Ok((s, content.to_string()))
@@ -122,6 +124,37 @@ fn escape_tex_string_text(s: &str) -> String {
             _ => c.to_string(),
         })
         .collect()
+}
+
+pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
+    let (s, (t, u)) = alt((
+        map(take_string_literal_content, |c| {
+            (escape_tex_string_math(&c), r"\mathrm")
+        }),
+        map_res(
+            tuple((
+                char('<'),
+                many0(char(' ')),
+                alt((take_string_literal_content, take_raw_string_literal_content)),
+                many0(char(' ')),
+                alpha1,
+                many0(char(' ')),
+                char('>'),
+            )),
+            |(_, _, c, _, v, _, _)| match v {
+                "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
+                "bf" | "mathbf" => Ok((escape_tex_string_math(&c), r"\mathbf")),
+                "bb" | "mathbb" => Ok((escape_tex_string_math(&c), r"\mathbb")),
+                "ca" | "mathcal" => Ok((escape_tex_string_math(&c), r"\mathcal")),
+                "tt" | "mathtt" => Ok((escape_tex_string_math(&c), r"\mathtt")),
+                "fr" | "mathfrak" => Ok((escape_tex_string_math(&c), r"\mathfrak")),
+                "sf" | "mathsf" => Ok((escape_tex_string_math(&c), r"\mathsf")),
+                "te" | "text" => Ok((escape_tex_string_text(&c), r"\text")),
+                _ => Err(()),
+            },
+        ),
+    ))(s)?;
+    Ok((s, Token::Symbol(format!("{}{{{}}}", u, t))))
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
