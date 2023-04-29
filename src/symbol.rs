@@ -2,7 +2,7 @@ use super::token::Token;
 
 use nom::{
     branch::alt,
-    bytes::complete::{is_a, tag, take_until},
+    bytes::complete::{tag, take_until},
     character::complete::{alpha0, alphanumeric1, anychar, char, digit1, satisfy},
     combinator::{map, map_res, opt},
     multi::{count, many0, many1, many_m_n, many_till},
@@ -11,6 +11,59 @@ use nom::{
 };
 use std::{fmt::Display, iter};
 use unicode_normalization::UnicodeNormalization;
+
+pub fn take_constant(s: &str) -> IResult<&str, Token> {
+    alt((take_symbol, take_string_literal, take_number))(s)
+}
+
+pub fn take_symbol(s: &str) -> IResult<&str, Token> {
+    let (s, t) = alt((
+        take_symbol_in_angle_brackets,
+        take_symbol_from_single_char,
+        take_symbol_from_ascii_art,
+    ))(s)?;
+    Ok((s, Token::Symbol(t)))
+}
+
+pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
+    let (s, (t, u)) = alt((
+        map(take_string_literal_content, |c| {
+            (escape_tex_string_math(&c), r"\mathrm")
+        }),
+        map_res(
+            tuple((
+                char('<'),
+                many0(char(' ')),
+                alt((take_string_literal_content, take_raw_string_literal_content)),
+                many0(char(' ')),
+                alpha0,
+                many0(char(' ')),
+                char('>'),
+            )),
+            |(_, _, c, _, v, _, _)| match v {
+                "" | "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
+                "bf" | "mathbf" => Ok((escape_tex_string_math(&c), r"\mathbf")),
+                "bb" | "mathbb" => Ok((escape_tex_string_math(&c), r"\mathbb")),
+                "ca" | "mathcal" => Ok((escape_tex_string_math(&c), r"\mathcal")),
+                "tt" | "mathtt" => Ok((escape_tex_string_math(&c), r"\mathtt")),
+                "fr" | "mathfrak" => Ok((escape_tex_string_math(&c), r"\mathfrak")),
+                "sf" | "mathsf" => Ok((escape_tex_string_math(&c), r"\mathsf")),
+                "te" | "text" => Ok((escape_tex_string_text(&c), r"\text")),
+                _ => Err(()),
+            },
+        ),
+    ))(s)?;
+    Ok((s, Token::Symbol(format!("{}{{{}}}", u, t))))
+}
+
+pub fn take_number(s: &str) -> IResult<&str, Token> {
+    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
+    if let Some((_, y)) = y {
+        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
+    } else {
+        Ok((s, Token::Symbol(format!("{}", x))))
+    }
+}
 
 fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
     let (s, (mut tex, accents)) = pair(
@@ -33,14 +86,6 @@ fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
 }
 
 fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
-    //! `symbol_with_accent` is
-    //!
-    //! `<({char_with_unicode_accent}|{ascii_art}|{symbol_name})( +{accent_name})*>`
-    //!
-    //! where
-    //! - `symbol_name` is `([A-Za-z]+)`
-    //! - `ascii_art` is `(\.[^\.]+\.)`
-    //! - `accent_name` is `!|[A-Za-z0-9]+`
     let (s, (_, _, mut tex, accents, _, _)) = tuple((
         char('<'),
         many0(char(' ')),
@@ -66,24 +111,6 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
         tex = format!("{}{{{}}}", accent, tex);
     }
     Ok((s, tex))
-}
-
-pub fn take_symbol(s: &str) -> IResult<&str, Token> {
-    //! `symbol` is
-    //!
-    //! `({char_with_unicode_accent}|{ascii_art}|{symbol_with_accent})'*`
-    //!
-    //! where
-    //! - `ascii_art` is `(\.[^\.]+\.)`
-    let (s, (t, u)) = pair(
-        alt((
-            take_symbol_in_angle_brackets,
-            take_symbol_from_single_char,
-            take_symbol_from_ascii_art,
-        )),
-        is_a("'"),
-    )(s)?;
-    Ok((s, Token::Symbol(t + u)))
 }
 
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
@@ -127,50 +154,6 @@ fn escape_tex_string_text(s: &str) -> String {
             _ => c.to_string(),
         })
         .collect()
-}
-
-pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
-    let (s, (t, u)) = alt((
-        map(take_string_literal_content, |c| {
-            (escape_tex_string_math(&c), r"\mathrm")
-        }),
-        map_res(
-            tuple((
-                char('<'),
-                many0(char(' ')),
-                alt((take_string_literal_content, take_raw_string_literal_content)),
-                many0(char(' ')),
-                alpha0,
-                many0(char(' ')),
-                char('>'),
-            )),
-            |(_, _, c, _, v, _, _)| match v {
-                "" | "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
-                "bf" | "mathbf" => Ok((escape_tex_string_math(&c), r"\mathbf")),
-                "bb" | "mathbb" => Ok((escape_tex_string_math(&c), r"\mathbb")),
-                "ca" | "mathcal" => Ok((escape_tex_string_math(&c), r"\mathcal")),
-                "tt" | "mathtt" => Ok((escape_tex_string_math(&c), r"\mathtt")),
-                "fr" | "mathfrak" => Ok((escape_tex_string_math(&c), r"\mathfrak")),
-                "sf" | "mathsf" => Ok((escape_tex_string_math(&c), r"\mathsf")),
-                "te" | "text" => Ok((escape_tex_string_text(&c), r"\text")),
-                _ => Err(()),
-            },
-        ),
-    ))(s)?;
-    Ok((s, Token::Symbol(format!("{}{{{}}}", u, t))))
-}
-
-pub fn take_number(s: &str) -> IResult<&str, Token> {
-    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
-    if let Some((_, y)) = y {
-        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
-    } else {
-        Ok((s, Token::Symbol(x.to_string())))
-    }
-}
-
-pub fn take_constant(s: &str) -> IResult<&str, Token> {
-    alt((take_symbol, take_string_literal, take_number))(s)
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {

@@ -120,54 +120,11 @@ fn take_cat(s: &str) -> IResult<&str, Token> {
     num_space(s).map(|(s, n)| (s, Token::Cat(n)))
 }
 
-//fn take_symbol_unicode(s: &str) -> IResult<&str, Token> {
-//    let (s, (_, _, mut tex, unicode_props, ascii_props, prime)) = tuple((
-//        peek(not(pair(char('#'), one_of(".!<>")))),
-//        opt(char('#')),
-//        map_res(anychar, get_tex_from_char),
-//        many0(map_res(anychar, get_unicode_accent)),
-//        many0(pair(char('.'), alphanumeric1)),
-//        many0(char('\'')),
-//    ))(s)?;
-//    for prop in unicode_props {
-//        tex = format!(r"\{}{{ {} }}", prop, tex);
-//    }
-//    for (_, prop) in ascii_props {
-//        tex = format!(r"\{}{{ {} }}", prop, tex);
-//    }
-//    tex.push_str(&"'".repeat(prime.len()));
-//    Ok((s, Token::Symbol(tex)))
-//}
-//
-//fn take_symbol_ascii_(s: &str) -> IResult<&str, Token> {
-//    let (s, (_, not, base, ascii_props)) = tuple((
-//        char('#'),
-//        opt(char('!')),
-//        alpha1,
-//        many0(pair(char('.'), alphanumeric1)),
-//    ))(s)?;
-//    let mut tex = format!(r"\{}", expand_abbred_symbol(base));
-//    if let Some(_) = not {
-//        tex = format!(r"\not{{ {} }}", tex);
-//    }
-//    for (_, prop) in ascii_props {
-//        tex = format!(r"\{}{{ {} }}", prop, tex);
-//    }
-//    Ok((s, Token::Symbol(tex)))
-//}
 
 fn symbol_alphabet(s: &str) -> IResult<&str, Token> {
     todo!()
 }
 
-fn take_number(s: &str) -> IResult<&str, Token> {
-    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
-    if let Some((_, y)) = y {
-        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
-    } else {
-        Ok((s, Token::Symbol(x.to_string())))
-    }
-}
 
 fn take_op_unicode(s: &str) -> IResult<&str, Token> {
     let (s, (t, order)) = pair(one_of("√∛∜"), num_space)(s)?;

@@ -10,6 +10,7 @@ pub enum Token {
     Open(String),
     Close(String),
     Symbol(String),
+    Prime(usize),
     UnicodeSub(Box<Token>),
     UnicodeSup(Box<Token>),
 }
