@@ -3,9 +3,9 @@ use super::token::Token;
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take_until},
-    character::complete::{alpha1, alphanumeric1, anychar, char},
+    character::complete::{alpha1, alphanumeric1, anychar, char, satisfy},
     combinator::{map, map_res},
-    multi::{count, many0, many1, many_till},
+    multi::{count, many0, many1, many_m_n, many_till},
     sequence::{pair, tuple},
     IResult,
 };
@@ -45,9 +45,12 @@ fn take_symbol_with_accent(s: &str) -> IResult<&str, String> {
         char('<'),
         many0(char(' ')),
         alt((
-            take_symbol_from_single_char,
             take_symbol_from_ascii_art,
-            map(alpha1, tex_of_maybe_abbreviated_symbol_name),
+            map(
+                many_m_n(2, usize::MAX, satisfy(|x| x.is_alphabetic())),
+                |x| tex_of_maybe_abbreviated_symbol_name(&x.into_iter().collect::<String>()),
+            ),
+            take_symbol_from_single_char,
         )),
         many0(pair(
             many1(char(' ')),
@@ -639,7 +642,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_1() {
-        assert_eq!(tex_of_char('Γ').unwrap(), r"\Gamma");
+    fn test_take_symbol() {
+        assert_eq!(take_symbol_from_single_char("aΓ").unwrap(), (r"Γ", r"a".to_string()));
+        assert_eq!(take_symbol_from_single_char("Γa").unwrap().1, r"\Gamma");
+        assert_eq!(
+            take_symbol_from_single_char("α̇").unwrap().1,
+            r"\dot{ \alpha }"
+        );
+        assert_eq!(take_symbol_with_accent("<a>").unwrap().1, "a");
+        assert_eq!(take_symbol_with_accent("<a dot>").unwrap().1, r"\dot{ a }");
+        assert_eq!(
+            take_symbol_with_accent("<a dot !>").unwrap().1,
+            r"\not{ \dot{ a } }"
+        );
+        assert_eq!(take_symbol_from_ascii_art(".oo.").unwrap().1, r"\infty");
+        assert_eq!(
+            take_symbol_with_accent("<α̇ tilde !>").unwrap().1,
+            r"\not{ \tilde{ \dot{ \alpha } } }"
+        );
+        assert_eq!(
+            take_symbol_with_accent("<.oo. !>").unwrap().1,
+            r"\not{ \infty }"
+        );
+        assert_eq!(take_symbol_with_accent("<alpha>").unwrap().1, r"\alpha");
+        assert_eq!(take_symbol_with_accent("<alpha dot>").unwrap().1, r"\dot{ \alpha }");
     }
 }
