@@ -2,7 +2,7 @@ use super::token::Token;
 
 use nom::{
     branch::alt,
-    bytes::complete::{tag, take_until},
+    bytes::complete::{is_a, tag, take_until},
     character::complete::{alpha1, alphanumeric1, anychar, char, digit1, satisfy},
     combinator::{flat_map, map, map_res, opt},
     multi::{count, fold_many0, many0, many1, many_m_n, many_till},
@@ -17,28 +17,34 @@ pub fn take_constant(s: &str) -> IResult<&str, Token> {
 }
 
 pub fn take_symbol(s: &str) -> IResult<&str, Token> {
-    let (s, t) = alt((
-        take_symbol_in_angle_brackets,
-        take_symbol_from_single_char,
-        take_symbol_from_ascii_art,
-    ))(s)?;
-    Ok((s, Token::Symbol(t)))
+    let (s, (t, u)) = pair(
+        alt((
+            take_symbol_in_angle_brackets,
+            take_symbol_from_single_char,
+            take_symbol_from_ascii_art,
+        )),
+        opt(is_a("'")),
+    )(s)?;
+    Ok((s, Token::Symbol(t + u.unwrap_or(""))))
 }
 
 pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
-    let (s, t) = alt((
-        take_string_literal_plain,
-        take_string_literal_in_angle_brackets,
-    ))(s)?;
-    Ok((s, Token::Symbol(t)))
+    let (s, (t, u)) = pair(
+        alt((
+            take_string_literal_plain,
+            take_string_literal_in_angle_brackets,
+        )),
+        opt(is_a("'")),
+    )(s)?;
+    Ok((s, Token::Symbol(t + u.unwrap_or(""))))
 }
 
 pub fn take_number(s: &str) -> IResult<&str, Token> {
-    let (s, (x, y)) = pair(digit1, opt(pair(char('.'), digit1)))(s)?;
+    let (s, (x, y, z)) = tuple((digit1, opt(pair(char('.'), digit1)), opt(is_a("'"))))(s)?;
     if let Some((_, y)) = y {
-        Ok((s, Token::Symbol(format!("{}.{}", x, y))))
+        Ok((s, Token::Symbol(format!("{}.{}{}", x, y, z.unwrap_or("")))))
     } else {
-        Ok((s, Token::Symbol(format!("{}", x))))
+        Ok((s, Token::Symbol(format!("{}{}", x, z.unwrap_or("")))))
     }
 }
 
@@ -710,133 +716,101 @@ fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn x<T: Display>(y: T) -> Token {
+        Token::Symbol(y.to_string())
+    }
 
     #[test]
     fn test_take_symbol() {
+        assert_eq!(take_symbol("aΓ").unwrap(), (r"Γ", x(r"a")));
+        assert_eq!(take_symbol("Γa").unwrap(), ("a", x(r"\Gamma")));
+        assert_eq!(take_symbol("α̇bcd").unwrap(), ("bcd", x(r"\dot{\alpha}")));
+        assert_eq!(take_symbol("<a>''").unwrap(), ("", x("a''")));
+        assert_eq!(take_symbol("<a dot>'b").unwrap(), ("b", x(r"\dot{a}'")));
+        assert_eq!(take_symbol("< a  dot  >").unwrap(), ("", x(r"\dot{a}")));
+        assert_eq!(take_symbol("<  a dot>").unwrap(), ("", x(r"\dot{a}")));
+        assert_eq!(take_symbol("<a dot !>").unwrap(), ("", x(r"\not{\dot{a}}")));
+        assert_eq!(take_symbol(".oo.").unwrap(), ("", x(r"\infty")));
+        assert_eq!(take_symbol(".oo.23").unwrap(), ("23", x(r"\infty")));
+        assert_eq!(take_symbol(".oo.'23").unwrap(), ("23", x(r"\infty'")));
         assert_eq!(
-            take_symbol_from_single_char("aΓ").unwrap(),
-            (r"Γ", r"a".to_string())
-        );
-        assert_eq!(take_symbol_from_single_char("Γa").unwrap().1, r"\Gamma");
-        assert_eq!(
-            take_symbol_from_single_char("α̇").unwrap().1,
-            r"\dot{\alpha}"
-        );
-        assert_eq!(take_symbol_in_angle_brackets("<a>").unwrap().1, "a");
-        assert_eq!(
-            take_symbol_in_angle_brackets("<a dot>").unwrap().1,
-            r"\dot{a}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("< a  dot  >").unwrap().1,
-            r"\dot{a}"
+            take_symbol("<α̇ tilde !>").unwrap(),
+            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
         );
         assert_eq!(
-            take_symbol_in_angle_brackets("<  a dot>").unwrap().1,
-            r"\dot{a}"
+            take_symbol("< α̇ tilde ! >").unwrap(),
+            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
         );
         assert_eq!(
-            take_symbol_in_angle_brackets("<a dot !>").unwrap().1,
-            r"\not{\dot{a}}"
+            take_symbol("<α̇  tilde !  >").unwrap(),
+            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
         );
-        assert_eq!(take_symbol_from_ascii_art(".oo.").unwrap().1, r"\infty");
+        assert_eq!(take_symbol("<.oo. !>").unwrap(), ("", x(r"\not{\infty}")));
+        assert_eq!(take_symbol("< .oo. !>").unwrap(), ("", x(r"\not{\infty}")));
         assert_eq!(
-            take_symbol_in_angle_brackets("<α̇ tilde !>").unwrap().1,
-            r"\not{\tilde{\dot{\alpha}}}"
+            take_symbol("<   .oo. !  >").unwrap(),
+            ("", x(r"\not{\infty}"))
         );
+        assert_eq!(take_symbol("<alpha>").unwrap(), ("", x(r"\alpha")));
         assert_eq!(
-            take_symbol_in_angle_brackets("< α̇ tilde ! >").unwrap().1,
-            r"\not{\tilde{\dot{\alpha}}}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("<α̇  tilde !  >").unwrap().1,
-            r"\not{\tilde{\dot{\alpha}}}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("<.oo. !>").unwrap().1,
-            r"\not{\infty}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("< .oo. !>").unwrap().1,
-            r"\not{\infty}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("<   .oo. !  >").unwrap().1,
-            r"\not{\infty}"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("<alpha>").unwrap().1,
-            r"\alpha"
-        );
-        assert_eq!(
-            take_symbol_in_angle_brackets("<alpha dot>").unwrap().1,
-            r"\dot{\alpha}"
+            take_symbol("<alpha dot>").unwrap(),
+            ("", x(r"\dot{\alpha}"))
         );
     }
 
     #[test]
     fn test_take_literal() {
         assert_eq!(
-            take_raw_string_literal_content(r###"##"aa"#Ba"##"###)
-                .unwrap()
-                .1,
-            r##"aa"#Ba"##
+            take_raw_string_literal_content(r###"##"aa"#Ba"##"###).unwrap(),
+            ("", r##"aa"#Ba"##.to_string())
+        );
+
+        assert_eq!(
+            take_string_literal(r#""aaa""#).unwrap(),
+            ("", x(r"\mathrm{aaa}"))
         );
         assert_eq!(
-            take_string_literal(r#""aaa""#).unwrap().1,
-            Token::Symbol(r"\mathrm{aaa}".to_string())
+            take_string_literal("`aa\"a`").unwrap(),
+            ("", x(r#"\mathrm{aa"a}"#))
         );
         assert_eq!(
-            take_string_literal("`aa\"a`").unwrap().1,
-            Token::Symbol(r#"\mathrm{aa"a}"#.to_string())
+            take_string_literal(r#"<"aaa">"#).unwrap(),
+            ("", x(r#"\mathrm{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"<"aaa">"#).unwrap().1,
-            Token::Symbol(r#"\mathrm{aaa}"#.to_string())
+            take_string_literal(r#"< "aaa"  >"#).unwrap(),
+            ("", x(r#"\mathrm{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"< "aaa"  >"#).unwrap().1,
-            Token::Symbol(r#"\mathrm{aaa}"#.to_string())
+            take_string_literal(r#"< "aaa"bb  >"#).unwrap(),
+            ("", x(r#"\mathbb{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"< "aaa"bb  >"#).unwrap().1,
-            Token::Symbol(r#"\mathbb{aaa}"#.to_string())
+            take_string_literal(r#"< "aaa"  bf it>"#).unwrap(),
+            ("", x(r#"\mathbfit{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"< "aaa"  bf it>"#).unwrap().1,
-            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
+            take_string_literal(r#"<"aaa"it    bf>"#).unwrap(),
+            ("", x(r#"\mathbfit{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"<"aaa"it    bf>"#).unwrap().1,
-            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
+            take_string_literal(r#"<"aaa"it bf sf>"#).unwrap(),
+            ("", x(r#"\mathbfsfit{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"<"aaa"it bf sf>"#).unwrap().1,
-            Token::Symbol(r#"\mathbfsfit{aaa}"#.to_string())
+            take_string_literal(r#"<"aaa"it bf>"#).unwrap(),
+            ("", x(r#"\mathbfit{aaa}"#))
         );
         assert_eq!(
-            take_string_literal(r#"<"aaa"it bf>"#).unwrap().1,
-            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
-        );
-        assert_eq!(
-            take_string_literal(r####"< ##"aaa"## te  >"####).unwrap().1,
-            Token::Symbol(r#"\text{aaa}"#.to_string())
+            take_string_literal(r####"< ##"aaa"## te  >"####).unwrap(),
+            ("", x(r#"\text{aaa}"#))
         );
     }
 
     #[test]
     fn test_take_number() {
-        assert_eq!(
-            take_number("0.1234ABC").unwrap().1,
-            Token::Symbol("0.1234".to_string())
-        );
-        assert_eq!(
-            take_number("0A1B3C").unwrap().1,
-            Token::Symbol("0".to_string())
-        );
-        assert_eq!(
-            take_number("0 1 3").unwrap().1,
-            Token::Symbol("0".to_string())
-        );
+        assert_eq!(take_number("0.1234ABC").unwrap(), ("ABC", x("0.1234")));
+        assert_eq!(take_number("0A1B3C").unwrap(), ("A1B3C", x("0")));
+        assert_eq!(take_number("0 1 3").unwrap(), (" 1 3", x("0")));
     }
 }
