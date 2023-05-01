@@ -230,8 +230,9 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
-    let nfkc = |c: char| iter::once(c).nfkc().next().ok_or(());
-
+    fn nfkc(c: char) -> Result<char, ()> {
+        iter::once(c).nfkc().next().ok_or(())
+    }
     fn raw(c: char) -> String {
         c.to_string()
     }
