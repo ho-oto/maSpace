@@ -3,9 +3,9 @@ use super::token::Token;
 use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
-    character::complete::{alpha0, alphanumeric1, anychar, char, digit1, satisfy},
+    character::complete::{alpha1, alphanumeric1, anychar, char, digit1, satisfy},
     combinator::{map, map_res, opt},
-    multi::{count, many0, many1, many_m_n, many_till},
+    multi::{count, fold_many0, many0, many1, many_m_n, many_till},
     sequence::{pair, tuple},
     IResult,
 };
@@ -26,34 +26,41 @@ pub fn take_symbol(s: &str) -> IResult<&str, Token> {
 }
 
 pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
-    let (s, (t, u)) = alt((
+    alt((
         map(take_string_literal_content, |c| {
-            (escape_tex_string_math(&c), r"\mathrm")
+            Token::Symbol(format!(r"\mathrm{{{}}}", escape_tex_string_math(&c)))
         }),
+        take_string_literal_in_angle_brackets,
+    ))(s)
+}
+
+fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, Token> {
+    let (s, (_, _, t, u, _, _)) = tuple((
+        char('<'),
+        many0(char(' ')),
+        alt((take_string_literal_content, take_raw_string_literal_content)),
         map_res(
-            tuple((
-                char('<'),
-                many0(char(' ')),
-                alt((take_string_literal_content, take_raw_string_literal_content)),
-                many0(char(' ')),
-                alpha0,
-                many0(char(' ')),
-                char('>'),
-            )),
-            |(_, _, c, _, v, _, _)| match v {
-                "" | "rm" | "mathrm" => Ok((escape_tex_string_math(&c), r"\mathrm")),
-                "bf" | "mathbf" => Ok((escape_tex_string_math(&c), r"\mathbf")),
-                "bb" | "mathbb" => Ok((escape_tex_string_math(&c), r"\mathbb")),
-                "ca" | "mathcal" => Ok((escape_tex_string_math(&c), r"\mathcal")),
-                "tt" | "mathtt" => Ok((escape_tex_string_math(&c), r"\mathtt")),
-                "fr" | "mathfrak" => Ok((escape_tex_string_math(&c), r"\mathfrak")),
-                "sf" | "mathsf" => Ok((escape_tex_string_math(&c), r"\mathsf")),
-                "te" | "text" => Ok((escape_tex_string_text(&c), r"\text")),
-                _ => Err(()),
-            },
+            fold_many0(
+                pair(many1(char(' ')), alpha1),
+                Vec::new,
+                |mut accents, (_, c)| {
+                    accents.push(c);
+                    accents
+                },
+            ),
+            string_literal_accents_to_suffix,
         ),
+        many0(char(' ')),
+        char('>'),
     ))(s)?;
-    Ok((s, Token::Symbol(format!("{}{{{}}}", u, t))))
+    Ok((
+        s,
+        Token::Symbol(if u == "text" {
+            format!(r"\text{{{}}}", escape_tex_string_text(&t))
+        } else {
+            format!(r"\math{}{{{}}}", u, escape_tex_string_math(&t))
+        }),
+    ))
 }
 
 pub fn take_number(s: &str) -> IResult<&str, Token> {
@@ -154,6 +161,53 @@ fn escape_tex_string_text(s: &str) -> String {
             _ => c.to_string(),
         })
         .collect()
+}
+
+fn string_literal_accents_to_suffix(accents: Vec<&str>) -> Result<&str, ()> {
+    let accents: Result<Vec<_>, _> = accents
+        .into_iter()
+        .map(|x| -> Result<&str, ()> {
+            match x {
+                "bb" | "mathbb" => Ok("bb"),
+                "b" | "bf" | "mathbf" => Ok("bf"),
+                "c" | "cc" | "ca" | "cal" | "mathcal" => Ok("cal"),
+                "f" | "fr" | "fra" | "frak" | "frk" | "mathfrak" => Ok("frak"),
+                "i" | "it" | "mathit" => Ok("it"),
+                "r" | "rm" | "mathrm" => Ok("rm"),
+                "sc" | "scr" | "mathscr" => Ok("scr"),
+                "sf" | "mathsf" => Ok("sf"),
+                "tt" | "mathtt" => Ok("tt"),
+                "te" | "text" => Ok("text"),
+                _ => Err(()),
+            }
+        })
+        .collect();
+    if let Ok(mut accents) = accents {
+        accents.sort();
+        accents.dedup();
+        match accents[..] {
+            [] => Ok("rm"),
+            ["bb"] => Ok("bb"),
+            ["bf"] => Ok("bf"),
+            ["bf", "cal"] => Ok("bfcal"),
+            ["bf", "frak"] => Ok("bffrak"),
+            ["bf", "it"] => Ok("bfit"),
+            ["bf", "scr"] => Ok("bfscr"),
+            ["bf", "it", "sf"] => Ok("bfsfit"),
+            ["cal"] => Ok("cal"),
+            ["frak"] => Ok("frak"),
+            ["it"] => Ok("it"),
+            ["it", "sf"] => Ok("sfit"),
+            ["rm"] => Ok("rm"),
+            ["scr"] => Ok("scr"),
+            ["sf"] => Ok("sf"),
+            ["tt"] => Ok("tt"),
+            ["text"] => Ok("text"),
+            _ => Err(()),
+        }
+    } else {
+        Err(())
+    }
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
