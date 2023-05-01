@@ -42,6 +42,8 @@ pub fn take_number(s: &str) -> IResult<&str, Token> {
     }
 }
 
+// symbol
+
 fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
     let (s, (mut tex, accents)) = pair(
         map_res(anychar, tex_of_char),
@@ -90,9 +92,11 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     Ok((s, tex))
 }
 
+// literal
+
 fn take_string_literal_plain(s: &str) -> IResult<&str, String> {
     map_res(take_string_literal_content, |c| {
-        resolve_string_literal_accent(&c, vec!["rm"])
+        resolve_string_literal_accent(&c, vec![])
     })(s)
 }
 
@@ -169,52 +173,60 @@ fn escape_tex_string_text(s: &str) -> String {
 fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<String, ()> {
     let accents: Result<Vec<_>, _> = accents
         .into_iter()
-        .map(|x| -> Result<&str, ()> {
-            match x {
-                "bb" | "mathbb" => Ok("bb"),
-                "b" | "bf" | "mathbf" => Ok("bf"),
-                "c" | "cc" | "ca" | "cal" | "mathcal" => Ok("cal"),
-                "f" | "fr" | "fra" | "frak" | "frk" | "mathfrak" => Ok("frak"),
-                "i" | "it" | "mathit" => Ok("it"),
-                "r" | "rm" | "mathrm" => Ok("rm"),
-                "sc" | "scr" | "mathscr" => Ok("scr"),
-                "sf" | "mathsf" => Ok("sf"),
-                "tt" | "mathtt" => Ok("tt"),
-                "te" | "text" => Ok("text"),
-                _ => Err(()),
-            }
+        .map(|x| {
+            Ok(match x {
+                "bb" | "mathbb" => "bb",
+                "b" | "bf" | "mathbf" => "bf",
+                "c" | "cc" | "ca" | "cal" | "mathcal" => "cal",
+                "f" | "fr" | "fra" | "frak" | "frk" | "mathfrak" => "frak",
+                "i" | "it" | "mathit" => "it",
+                "r" | "rm" | "mathrm" => "rm",
+                "sc" | "scr" | "mathscr" => "scr",
+                "sf" | "mathsf" => "sf",
+                "tt" | "mathtt" => "tt",
+                "bffr" | "frbf" | "bffrak" | "frakbf" | "mathbffrak" | "mathfrakbf" => "bffrak",
+                "bfit" | "itbf" | "mathbfit" | "mathitbf" => "bfit",
+                "bfsc" | "scbf" | "bfscr" | "scrbf" | "mathbfscr" | "mathscrbf" => "bfscr",
+                "bfsf" | "sfbf" | "mathbfsf" | "mathsfbf" => "bfsf",
+                "sfit" | "itsf" | "mathsfit" | "mathitsf" => "sfit",
+                "bfsfit" | "bfitsf" | "sfbfit" | "sfitbf" | "itsfbf" | "itbfsf" | "mathbfsfit"
+                | "mathbfitsf" | "mathsfbfit" | "mathsfitbf" | "mathitsfbf" | "mathitbfsf" => {
+                    "bfsfit"
+                }
+                "t" | "te" | "text" => "text",
+                _ => return Err(()),
+            })
         })
         .collect();
-    if let Ok(mut accents) = accents {
-        accents.sort();
-        accents.dedup();
-        let content = match accents[..] {
-            ["text"] => escape_tex_string_text(&content),
-            _ => escape_tex_string_math(&content),
-        };
-        let prefix = match accents[..] {
-            ["bb"] => r"\mathbb",
-            ["bf"] => r"\mathbf",
-            ["bf", "cal"] => r"\mathbfcal",
-            ["bf", "frak"] => r"\mathbffrak",
-            ["bf", "it"] => r"\mathbfit",
-            ["bf", "scr"] => r"\mathbfscr",
-            ["bf", "it", "sf"] => r"\mathbfsfit",
-            ["cal"] => r"\mathcal",
-            ["frak"] => r"\mathfrak",
-            ["it"] => r"\mathit",
-            ["it", "sf"] => r"\mathsfit",
-            ["rm"] | [] => r"\mathrm",
-            ["scr"] => r"\mathscr",
-            ["sf"] => r"\mathsf",
-            ["tt"] => r"\mathtt",
-            ["text"] => r"\text",
-            _ => return Err(()),
-        };
-        Ok(format!("{}{{{}}}", prefix, content))
-    } else {
-        Err(())
-    }
+    let mut accents = accents?;
+    accents.sort();
+    accents.dedup();
+    let content = match accents[..] {
+        ["text"] => escape_tex_string_text(&content),
+        _ => escape_tex_string_math(&content),
+    };
+    let prefix = match accents[..] {
+        ["bb"] => r"\mathbb",
+        ["bf"] => r"\mathbf",
+        ["bf", "cal"] => r"\mathbfcal",
+        ["bf", "frak"] | ["bffrak"] => r"\mathbffrak",
+        ["bf", "it"] | ["bfit"] => r"\mathbfit",
+        ["bf", "scr"] | ["bfscr"] => r"\mathbfscr",
+        ["bf", "it", "sf"] | ["bfit", "sf"] | ["bfsf", "it"] | ["bf", "sfit"] | ["bfsfit"] => {
+            r"\mathbfsfit"
+        }
+        ["cal"] => r"\mathcal",
+        ["frak"] => r"\mathfrak",
+        ["it"] => r"\mathit",
+        ["it", "sf"] | ["sfit"] => r"\mathsfit",
+        ["rm"] | [] => r"\mathrm",
+        ["scr"] => r"\mathscr",
+        ["sf"] => r"\mathsf",
+        ["tt"] => r"\mathtt",
+        ["text"] => r"\text",
+        _ => return Err(()),
+    };
+    Ok(format!("{}{{{}}}", prefix, content))
 }
 
 fn tex_of_char(c: char) -> Result<String, ()> {
@@ -715,6 +727,14 @@ mod tests {
             r"\dot{a}"
         );
         assert_eq!(
+            take_symbol_in_angle_brackets("< a  dot  >").unwrap().1,
+            r"\dot{a}"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("<  a dot>").unwrap().1,
+            r"\dot{a}"
+        );
+        assert_eq!(
             take_symbol_in_angle_brackets("<a dot !>").unwrap().1,
             r"\not{\dot{a}}"
         );
@@ -724,7 +744,23 @@ mod tests {
             r"\not{\tilde{\dot{\alpha}}}"
         );
         assert_eq!(
+            take_symbol_in_angle_brackets("< α̇ tilde ! >").unwrap().1,
+            r"\not{\tilde{\dot{\alpha}}}"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("<α̇  tilde !  >").unwrap().1,
+            r"\not{\tilde{\dot{\alpha}}}"
+        );
+        assert_eq!(
             take_symbol_in_angle_brackets("<.oo. !>").unwrap().1,
+            r"\not{\infty}"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("< .oo. !>").unwrap().1,
+            r"\not{\infty}"
+        );
+        assert_eq!(
+            take_symbol_in_angle_brackets("<   .oo. !  >").unwrap().1,
             r"\not{\infty}"
         );
         assert_eq!(
@@ -760,6 +796,26 @@ mod tests {
         assert_eq!(
             take_string_literal(r#"< "aaa"  >"#).unwrap().1,
             Token::Symbol(r#"\mathrm{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"< "aaa"bb  >"#).unwrap().1,
+            Token::Symbol(r#"\mathbb{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"< "aaa"  bf it>"#).unwrap().1,
+            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"<"aaa"it    bf>"#).unwrap().1,
+            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"<"aaa"it bf sf>"#).unwrap().1,
+            Token::Symbol(r#"\mathbfsfit{aaa}"#.to_string())
+        );
+        assert_eq!(
+            take_string_literal(r#"<"aaa"it bf>"#).unwrap().1,
+            Token::Symbol(r#"\mathbfit{aaa}"#.to_string())
         );
         assert_eq!(
             take_string_literal(r####"< ##"aaa"## te  >"####).unwrap().1,
