@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::{tag, take_until},
     character::complete::{alpha1, alphanumeric1, anychar, char, digit1, satisfy},
-    combinator::{map, map_res, opt},
+    combinator::{flat_map, map, map_res, opt},
     multi::{count, fold_many0, many0, many1, many_m_n, many_till},
     sequence::{pair, tuple},
     IResult,
@@ -26,41 +26,11 @@ pub fn take_symbol(s: &str) -> IResult<&str, Token> {
 }
 
 pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
-    alt((
-        map(take_string_literal_content, |c| {
-            Token::Symbol(format!(r"\mathrm{{{}}}", escape_tex_string_math(&c)))
-        }),
+    let (s, t) = alt((
+        take_string_literal_plain,
         take_string_literal_in_angle_brackets,
-    ))(s)
-}
-
-fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, Token> {
-    let (s, (_, _, t, u, _, _)) = tuple((
-        char('<'),
-        many0(char(' ')),
-        alt((take_string_literal_content, take_raw_string_literal_content)),
-        map_res(
-            fold_many0(
-                pair(many1(char(' ')), alpha1),
-                Vec::new,
-                |mut accents, (_, c)| {
-                    accents.push(c);
-                    accents
-                },
-            ),
-            string_literal_accents_to_suffix,
-        ),
-        many0(char(' ')),
-        char('>'),
     ))(s)?;
-    Ok((
-        s,
-        Token::Symbol(if u == "text" {
-            format!(r"\text{{{}}}", escape_tex_string_text(&t))
-        } else {
-            format!(r"\math{}{{{}}}", u, escape_tex_string_math(&t))
-        }),
-    ))
+    Ok((s, Token::Symbol(t)))
 }
 
 pub fn take_number(s: &str) -> IResult<&str, Token> {
@@ -120,6 +90,39 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     Ok((s, tex))
 }
 
+fn take_string_literal_plain(s: &str) -> IResult<&str, String> {
+    map_res(take_string_literal_content, |c| {
+        resolve_string_literal_accent(&c, vec!["rm"])
+    })(s)
+}
+
+fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
+    let (s, (t, _)) = flat_map(
+        tuple((
+            pair(char('<'), many0(char(' '))),
+            alt((take_string_literal_content, take_raw_string_literal_content)),
+            opt(alpha1),
+        )),
+        |(_, content, accent)| {
+            pair(
+                map_res(
+                    fold_many0(
+                        pair(many1(char(' ')), alpha1),
+                        move || accent.into_iter().collect(),
+                        |mut accents: Vec<_>, (_, c)| {
+                            accents.push(c);
+                            accents
+                        },
+                    ),
+                    move |x| resolve_string_literal_accent(&content, x),
+                ),
+                pair(many0(char(' ')), char('>')),
+            )
+        },
+    )(s)?;
+    Ok((s, t))
+}
+
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
     let (s, (_, content, _)) = alt((
         tuple((char('"'), take_until("\""), char('"'))),
@@ -163,7 +166,7 @@ fn escape_tex_string_text(s: &str) -> String {
         .collect()
 }
 
-fn string_literal_accents_to_suffix(accents: Vec<&str>) -> Result<&str, ()> {
+fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<String, ()> {
     let accents: Result<Vec<_>, _> = accents
         .into_iter()
         .map(|x| -> Result<&str, ()> {
@@ -185,26 +188,30 @@ fn string_literal_accents_to_suffix(accents: Vec<&str>) -> Result<&str, ()> {
     if let Ok(mut accents) = accents {
         accents.sort();
         accents.dedup();
-        match accents[..] {
-            [] => Ok("rm"),
-            ["bb"] => Ok("bb"),
-            ["bf"] => Ok("bf"),
-            ["bf", "cal"] => Ok("bfcal"),
-            ["bf", "frak"] => Ok("bffrak"),
-            ["bf", "it"] => Ok("bfit"),
-            ["bf", "scr"] => Ok("bfscr"),
-            ["bf", "it", "sf"] => Ok("bfsfit"),
-            ["cal"] => Ok("cal"),
-            ["frak"] => Ok("frak"),
-            ["it"] => Ok("it"),
-            ["it", "sf"] => Ok("sfit"),
-            ["rm"] => Ok("rm"),
-            ["scr"] => Ok("scr"),
-            ["sf"] => Ok("sf"),
-            ["tt"] => Ok("tt"),
-            ["text"] => Ok("text"),
-            _ => Err(()),
-        }
+        let content = match accents[..] {
+            ["text"] => escape_tex_string_text(&content),
+            _ => escape_tex_string_math(&content),
+        };
+        let prefix = match accents[..] {
+            ["bb"] => r"\mathbb",
+            ["bf"] => r"\mathbf",
+            ["bf", "cal"] => r"\mathbfcal",
+            ["bf", "frak"] => r"\mathbffrak",
+            ["bf", "it"] => r"\mathbfit",
+            ["bf", "scr"] => r"\mathbfscr",
+            ["bf", "it", "sf"] => r"\mathbfsfit",
+            ["cal"] => r"\mathcal",
+            ["frak"] => r"\mathfrak",
+            ["it"] => r"\mathit",
+            ["it", "sf"] => r"\mathsfit",
+            ["rm"] | [] => r"\mathrm",
+            ["scr"] => r"\mathscr",
+            ["sf"] => r"\mathsf",
+            ["tt"] => r"\mathtt",
+            ["text"] => r"\text",
+            _ => return Err(()),
+        };
+        Ok(format!("{}{{{}}}", prefix, content))
     } else {
         Err(())
     }
