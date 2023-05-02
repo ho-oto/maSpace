@@ -9,7 +9,7 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
-use std::{fmt::Display, iter, iter::once};
+use std::{fmt::Display, iter::once};
 use unicode_normalization::UnicodeNormalization;
 
 pub fn take_constant(s: &str) -> IResult<&str, Token> {
@@ -47,9 +47,7 @@ pub fn take_number(s: &str) -> IResult<&str, Token> {
     map(
         tuple((
             digit1,
-            opt(map(preceded(char('.'), digit1), |decimal| {
-                format!(".{}", decimal)
-            })),
+            opt(map(preceded(char('.'), digit1), |x| format!(".{}", x))),
             opt(is_a("'")),
         )),
         |(integer, decimal, prime): (&str, Option<String>, Option<&str>)| {
@@ -146,7 +144,7 @@ fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
                         move || accent.into_iter().collect::<Vec<_>>(),
                         |accents, a| accents.into_iter().chain(once(a)).collect(),
                     ),
-                    move |x| resolve_string_literal_accent(&content, x),
+                    move |accents| resolve_string_literal_accent(&content, accents),
                 ),
                 pair(many0(char(' ')), char('>')),
             )
@@ -161,14 +159,12 @@ fn take_string_literal_content(s: &str) -> IResult<&str, String> {
             delimited(char('`'), take_until("`"), char('`')),
         )),
         String::from,
-    )(s) //?;
+    )(s)
 }
 
 fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
     flat_map(
-        map(terminated(many1(char('#')), char('"')), |sharps| {
-            sharps.len()
-        }),
+        map(terminated(many1(char('#')), char('"')), |x| x.len()),
         |num| {
             map(
                 many_till(anychar, pair(char('"'), count(char('#'), num))),
@@ -179,29 +175,23 @@ fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
 }
 
 fn escape_tex_string_math(s: &str) -> String {
-    let mut rsl = "".to_string();
-    for c in s.chars() {
-        match c {
-            '#' | '$' | '%' | '_' | '{' | '}' => {
-                rsl.push('\\');
-                rsl.push(c)
-            }
-            '~' => rsl.push_str(r"{\textasciitilde}"),
-            '^' => rsl.push_str(r"{\textasciicircum}"),
-            '\\' => rsl.push_str(r"{\backslash}"),
-            _ => rsl.push(c),
-        }
-    }
-    rsl
+    s.chars()
+        .into_iter()
+        .map(|c| match c {
+            '#' | '$' | '%' | '_' | '{' | '}' => format!(r"\{}", c),
+            '~' => r"{\textasciitilde}".to_string(),
+            '^' => r"{\textasciicircum}".to_string(),
+            '\\' => r"{\backslash}".to_string(),
+            _ => c.to_string(),
+        })
+        .collect()
 }
 
 fn escape_tex_string_text(s: &str) -> String {
     s.chars()
         .into_iter()
         .map(|c| match c {
-            '$' | '{' | '}' | '\\' => {
-                format!(r"\{}", c)
-            }
+            '$' | '{' | '}' | '\\' => format!(r"\{}", c),
             _ => c.to_string(),
         })
         .collect()
@@ -268,7 +258,7 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
 
 fn tex_of_char(c: char) -> Result<String, ()> {
     fn nfkc(c: char) -> Result<char, ()> {
-        iter::once(c).nfkc().next().ok_or(())
+        once(c).nfkc().next().ok_or(())
     }
     fn raw(c: char) -> String {
         c.to_string()
@@ -726,22 +716,16 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
 }
 
 fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
-    format!(
-        r"\{}",
-        match s {
-            _ => s,
-        }
-    )
+    match s {
+        _ => format!(r"\{}", s),
+    }
 }
 
 fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
-    format!(
-        r"\{}",
-        match s {
-            "!" => "not",
-            _ => s,
-        }
-    )
+    match s {
+        "!" => r"\not".to_string(),
+        _ => format!(r"\{}", s),
+    }
 }
 
 #[cfg(test)]
@@ -767,6 +751,11 @@ mod tests {
         assert_eq!(
             take_symbol("<α̇ tilde !>").unwrap(),
             ("", x(r"\not{\tilde{\dot{\alpha}}}"))
+        );
+        assert_eq!(take_symbol("<α̇!>").unwrap(), ("", x(r"\not{\dot{\alpha}}")));
+        assert_eq!(
+            take_symbol("<α̇! tilde>").unwrap(),
+            ("", x(r"\tilde{\not{\dot{\alpha}}}"))
         );
         assert_eq!(
             take_symbol("< α̇ tilde ! >").unwrap(),
