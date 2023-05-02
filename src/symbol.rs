@@ -5,11 +5,11 @@ use nom::{
     bytes::complete::{is_a, tag, take_until},
     character::complete::{alpha1, alphanumeric1, anychar, char, digit1, satisfy},
     combinator::{flat_map, map, map_res, opt},
-    multi::{count, fold_many0, many0, many1, many_m_n, many_till},
-    sequence::{pair, tuple},
+    multi::{count, fold_many0, fold_many_m_n, many0, many1, many_till},
+    sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
-use std::{fmt::Display, iter};
+use std::{fmt::Display, iter, iter::once};
 use unicode_normalization::UnicodeNormalization;
 
 pub fn take_constant(s: &str) -> IResult<&str, Token> {
@@ -17,85 +17,108 @@ pub fn take_constant(s: &str) -> IResult<&str, Token> {
 }
 
 pub fn take_symbol(s: &str) -> IResult<&str, Token> {
-    let (s, (t, u)) = pair(
-        alt((
-            take_symbol_in_angle_brackets,
-            take_symbol_from_single_char,
-            take_symbol_from_ascii_art,
-        )),
-        opt(is_a("'")),
-    )(s)?;
-    Ok((s, Token::Symbol(t + u.unwrap_or(""))))
+    map(
+        pair(
+            alt((
+                take_symbol_in_angle_brackets,
+                take_symbol_from_single_char,
+                take_symbol_from_ascii_art,
+            )),
+            opt(is_a("'")),
+        ),
+        |(tex, prime)| Token::Symbol(tex + prime.unwrap_or_default()),
+    )(s)
 }
 
 pub fn take_string_literal(s: &str) -> IResult<&str, Token> {
-    let (s, (t, u)) = pair(
-        alt((
-            take_string_literal_plain,
-            take_string_literal_in_angle_brackets,
-        )),
-        opt(is_a("'")),
-    )(s)?;
-    Ok((s, Token::Symbol(t + u.unwrap_or(""))))
+    map(
+        pair(
+            alt((
+                take_string_literal_plain,
+                take_string_literal_in_angle_brackets,
+            )),
+            opt(is_a("'")),
+        ),
+        |(tex, prime)| Token::Symbol(tex + prime.unwrap_or_default()),
+    )(s)
 }
 
 pub fn take_number(s: &str) -> IResult<&str, Token> {
-    let (s, (x, y, z)) = tuple((digit1, opt(pair(char('.'), digit1)), opt(is_a("'"))))(s)?;
-    if let Some((_, y)) = y {
-        Ok((s, Token::Symbol(format!("{}.{}{}", x, y, z.unwrap_or("")))))
-    } else {
-        Ok((s, Token::Symbol(format!("{}{}", x, z.unwrap_or("")))))
-    }
+    map(
+        tuple((
+            digit1,
+            opt(map(preceded(char('.'), digit1), |decimal| {
+                format!(".{}", decimal)
+            })),
+            opt(is_a("'")),
+        )),
+        |(integer, decimal, prime): (&str, Option<String>, Option<&str>)| {
+            Token::Symbol(format!(
+                "{}{}{}",
+                integer,
+                decimal.unwrap_or_default(),
+                prime.unwrap_or_default()
+            ))
+        },
+    )(s)
 }
 
 // symbol
 
 fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
-    let (s, (mut tex, accents)) = pair(
-        map_res(anychar, tex_of_char),
-        many0(map_res(anychar, tex_of_unicode_accent)),
-    )(s)?;
-    for accent in accents {
-        tex = format!("{}{{{}}}", accent, tex);
-    }
-    Ok((s, tex))
+    flat_map(map_res(anychar, tex_of_char), |tex| {
+        fold_many0(
+            map_res(anychar, tex_of_unicode_accent),
+            move || String::from(&tex),
+            |tex, accent| format!("{}{{{}}}", accent, tex),
+        )
+    })(s)
 }
 
 fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
-    let (s, (_, tex, _)) = tuple((
+    delimited(
         char('.'),
         map_res(take_until("."), tex_of_ascii_art),
         char('.'),
-    ))(s)?;
-    Ok((s, tex))
+    )(s)
 }
 
 fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
-    let (s, (_, _, mut tex, accents, _, _)) = tuple((
-        char('<'),
-        many0(char(' ')),
-        alt((
-            map(
-                many_m_n(2, usize::MAX, satisfy(|x| x.is_alphabetic())),
-                |x| tex_of_maybe_abbreviated_symbol_name(&x.into_iter().collect::<String>()),
-            ),
-            take_symbol_from_ascii_art,
-            take_symbol_from_single_char,
-        )),
-        many0(pair(
-            many1(char(' ')),
-            map(
-                alt((alphanumeric1, tag("!"))),
-                tex_of_maybe_abbreviated_accent_name,
-            ),
-        )),
-        many0(char(' ')),
-        char('>'),
-    ))(s)?;
-    for (_, accent) in accents {
-        tex = format!("{}{{{}}}", accent, tex);
-    }
-    Ok((s, tex))
+    flat_map(
+        preceded(
+            pair(char('<'), many0(char(' '))),
+            alt((
+                map(
+                    fold_many_m_n(
+                        2,
+                        usize::MAX,
+                        satisfy(|x| x.is_alphabetic()),
+                        String::new,
+                        |x, y| format!("{}{}", x, y),
+                    ),
+                    |x| tex_of_maybe_abbreviated_symbol_name(&x),
+                ),
+                take_symbol_from_ascii_art,
+                take_symbol_from_single_char,
+            )),
+        ),
+        |tex| {
+            terminated(
+                fold_many0(
+                    map(
+                        alt((
+                            preceded(many0(char(' ')), tag("!")),
+                            preceded(many1(char(' ')), alphanumeric1),
+                        )),
+                        tex_of_maybe_abbreviated_accent_name,
+                    ),
+                    move || String::from(&tex),
+                    |tex, accent| format!("{}{{{}}}", accent, tex),
+                ),
+                pair(many0(char(' ')), char('>')),
+            )
+        },
+    )(s)
 }
 
 // literal
@@ -107,44 +130,52 @@ fn take_string_literal_plain(s: &str) -> IResult<&str, String> {
 }
 
 fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
-    let (s, (t, _)) = flat_map(
-        tuple((
+    flat_map(
+        preceded(
             pair(char('<'), many0(char(' '))),
-            alt((take_string_literal_content, take_raw_string_literal_content)),
-            opt(alpha1),
-        )),
-        |(_, content, accent)| {
             pair(
+                alt((take_string_literal_content, take_raw_string_literal_content)),
+                opt(alpha1),
+            ),
+        ),
+        |(content, accent)| {
+            terminated(
                 map_res(
                     fold_many0(
-                        pair(many1(char(' ')), alpha1),
-                        move || accent.into_iter().collect(),
-                        |mut accents: Vec<_>, (_, c)| {
-                            accents.push(c);
-                            accents
-                        },
+                        preceded(many1(char(' ')), alpha1),
+                        move || accent.into_iter().collect::<Vec<_>>(),
+                        |accents, a| accents.into_iter().chain(once(a)).collect(),
                     ),
                     move |x| resolve_string_literal_accent(&content, x),
                 ),
                 pair(many0(char(' ')), char('>')),
             )
         },
-    )(s)?;
-    Ok((s, t))
+    )(s)
 }
 
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
-    let (s, (_, content, _)) = alt((
-        tuple((char('"'), take_until("\""), char('"'))),
-        tuple((char('`'), take_until("`"), char('`'))),
-    ))(s)?;
-    Ok((s, content.to_string()))
+    map(
+        alt((
+            delimited(char('"'), take_until("\""), char('"')),
+            delimited(char('`'), take_until("`"), char('`')),
+        )),
+        String::from,
+    )(s) //?;
 }
 
 fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
-    let (s, (sharps, _)) = pair(many1(char('#')), char('"'))(s)?;
-    let (s, (content, _)) = many_till(anychar, pair(char('"'), count(char('#'), sharps.len())))(s)?;
-    Ok((s, content.into_iter().collect()))
+    flat_map(
+        map(terminated(many1(char('#')), char('"')), |sharps| {
+            sharps.len()
+        }),
+        |num| {
+            map(
+                many_till(anychar, pair(char('"'), count(char('#'), num))),
+                |(content, _)| content.into_iter().collect(),
+            )
+        },
+    )(s)
 }
 
 fn escape_tex_string_math(s: &str) -> String {
@@ -681,10 +712,10 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         "-=>" => r"\Rightarrow",
         "<-=" => r"\Leftarrow",
         "<=-" => r"\Leftarrow",
-        "<" => "<",
+        "<" => r"\lt",
         "<=" => r"\le",
-        ">" => ">",
-        ">=" => r"\re",
+        ">" => r"\gt",
+        ">=" => r"\ge",
         "||" => r"\|",
         "/" => "/",
         "x" => r"\times",
@@ -747,6 +778,7 @@ mod tests {
         );
         assert_eq!(take_symbol("<.oo. !>").unwrap(), ("", x(r"\not{\infty}")));
         assert_eq!(take_symbol("< .oo. !>").unwrap(), ("", x(r"\not{\infty}")));
+        assert_eq!(take_symbol("<.<. !>").unwrap(), ("", x(r"\not{\lt}")));
         assert_eq!(
             take_symbol("<   .oo. !  >").unwrap(),
             ("", x(r"\not{\infty}"))
