@@ -5,6 +5,7 @@ pub enum Token {
     Sup(usize),
     Over(usize),
     Under(usize),
+    Root(usize),
     Frac(usize),
     Op(String, usize),
     Open(String),
