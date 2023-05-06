@@ -5,7 +5,7 @@ use nom::{branch::alt, bytes::complete::tag, character::complete::char, combinat
 
 pub fn take_binop(s: &str) -> IResult<&str, Token> {
     alt((
-        take_over, take_under, take_sub, take_sup, take_root, take_frac, take_cat,
+        take_over, take_under, take_root, take_sub, take_sup, take_frac, take_cat,
     ))(s)
 }
 
@@ -22,7 +22,7 @@ fn take_over(s: &str) -> IResult<&str, Token> {
     map(count_space_around(tag("^^")), |x| Token::Over(x))(s)
 }
 fn take_root(s: &str) -> IResult<&str, Token> {
-    map(count_space_around(tag("/^")), |x| Token::Root(x))(s)
+    map(count_space_around(tag("_/")), |x| Token::Root(x))(s)
 }
 fn take_frac(s: &str) -> IResult<&str, Token> {
     map(count_space_around(char('/')), |x| Token::Frac(x))(s)
@@ -70,6 +70,13 @@ mod tests {
         assert_eq!(take_binop("    /+").unwrap(), ("+", Token::Frac(4)));
         assert_eq!(take_binop("  /  123").unwrap(), ("123", Token::Frac(2)));
         assert_eq!(take_binop("/x").unwrap(), ("x", Token::Frac(0)));
+
+        assert_eq!(take_binop("  _/  123").unwrap(), ("123", Token::Root(2)));
+        assert_eq!(take_binop("  _/ a").unwrap(), ("a", Token::Root(2)));
+        assert_eq!(take_binop("_/  <a>").unwrap(), ("<a>", Token::Root(2)));
+        assert_eq!(take_binop("    _/+").unwrap(), ("+", Token::Root(4)));
+        assert_eq!(take_binop("  _/  123").unwrap(), ("123", Token::Root(2)));
+        assert_eq!(take_binop("_/x").unwrap(), ("x", Token::Root(0)));
 
         assert_eq!(take_binop(" 123").unwrap(), ("123", Token::Cat(1)));
         assert_eq!(take_binop("  a").unwrap(), ("a", Token::Cat(2)));
