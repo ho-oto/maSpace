@@ -3,7 +3,7 @@ use super::token::Token;
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take_until},
-    character::complete::{alpha1, alphanumeric1, anychar, char, digit1, satisfy},
+    character::complete::{alpha1, alphanumeric1, anychar, char, digit1, one_of, satisfy},
     combinator::{flat_map, map, map_res, opt},
     multi::{count, fold_many0, fold_many_m_n, many0, many1, many_till},
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -75,9 +75,9 @@ fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
 
 fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
     delimited(
-        char('.'),
-        map_res(take_until("."), tex_of_ascii_art),
-        char('.'),
+        char('`'),
+        map_res(take_until("`"), tex_of_ascii_art),
+        char('`'),
     )(s)
 }
 
@@ -86,18 +86,15 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
         preceded(
             pair(char('<'), many0(char(' '))),
             alt((
-                map(
-                    fold_many_m_n(
-                        2,
-                        usize::MAX,
-                        satisfy(|x| x.is_alphabetic()),
-                        String::new,
-                        |x, y| format!("{}{}", x, y),
-                    ),
-                    |x| tex_of_maybe_abbreviated_symbol_name(&x),
-                ),
+                map_res(alpha1, |x: &str| {
+                    (x.len() != 1)
+                        .then_some(tex_of_maybe_abbreviated_symbol_name(x))
+                        .ok_or(())
+                }),
                 take_symbol_from_ascii_art,
                 take_symbol_from_single_char,
+                map(one_of("^_"), |x| format!(r"\{}", x)),
+                map(char('/'), |_| "/".to_string()),
             )),
         ),
         |tex| {
@@ -154,10 +151,7 @@ fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
 
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
     map(
-        alt((
-            delimited(char('"'), take_until("\""), char('"')),
-            delimited(char('`'), take_until("`"), char('`')),
-        )),
+        delimited(char('"'), take_until("\""), char('"')),
         String::from,
     )(s)
 }
@@ -272,13 +266,13 @@ fn tex_of_char(c: char) -> Result<String, ()> {
 
     Ok(match c {
         // - ASCII
-        '!' | '*' | '+' | ',' | '-' | ':' | ';' | '=' | '?' | '@' | '|' => raw(c),
+        '!' | '*' | '+' | ',' | '.' | '-' | ':' | ';' | '=' | '?' | '@' | '|' => raw(c),
         'A'..='Z' | 'a'..='z' => raw(c),
         '#' | '$' | '%' | '&' => sym(c),
         '\\' => sym("backslash"),
         '~' => sym("sim"),
         // rest:
-        //   ␠, ", ', (, ), ., /, 0-9, <, >, [, ], ^, _, `, {, }
+        //   ␠, ", ', (, ), /, 0-9, <, >, [, ], ^, _, `, {, }
         // - Greek alphabets
         //   * capital
         'Α' => sym("Alpha"),
@@ -694,22 +688,81 @@ fn tex_of_unicode_accent(c: char) -> Result<String, ()> {
 
 fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
     Ok(match s {
+        "+-" => r"\pm",
+        "-+" => r"\mp",
+        "-:-" => r"\div",
+        "@" | "." => r"\cdot",
+        "-" => r"\bullet",
+        "o" => r"\circ",
+        "x" => r"\times",
+        "(x)" => r"\otimes",
+        "(+)" => r"\oplus",
+        "(.)" => r"\odot",
+
         "!=" => r"\ne",
-        "->" => r"\leftarrow",
-        "<-" => r"\rightarrow",
-        "=>" => r"\Rightarrow",
-        "=->" => r"\Rightarrow",
-        "-=>" => r"\Rightarrow",
-        "<-=" => r"\Leftarrow",
-        "<=-" => r"\Leftarrow",
+        "-:" => r"\eqcolon",
+        "-::" => r"\Eqcolon",
+        "=:" => r"\eqqcolon",
+        "=::" => r"\Eqqcolon",
+        ":-" => r"\coloneq",
+        "::-" => r"\Coloneq",
+        ":=" => r"\coloneqq",
+        "::=" => r"\Coloneqq",
+        "-=" | "=-" => r"\equiv",
+        "-~" => r"\eqsim",
+        "~-" => r"\simeq",
+        "~=" => r"\cong",
+        "~~" => r"\approx",
+        "~~-" => r"\approxeq",
+        ":~" => r"\colonsim",
+        "::~" => r"\Colonsim",
+        "oc" => r"\propto",
+
+        "-->" => r"\leftarrow",
+        "<--" => r"\rightarrow",
+        "==>" => r"\Rightarrow",
+        "<==" => r"\Leftarrow",
+        "<<-" => r"\twoheadleftarrow",
+        "->>" => r"\twoheadrightarrow",
+        "<-<" => r"\leftarrowtail",
+        ">->" => r"\rightarrowtail",
+        "|->" => r"\mapsto",
+        "<=>" => r"\Leftrightarrow",
+        "<->" => r"\leftrightarrow",
+        "~~>" => r"\rightsquigarrow",
+        "<~>" => r"\leftrightsquigarrow",
+
+        "^" => r"\wedge",
+        "V" | "v" => r"\vee",
+        "n" => r"\cap",
+        "U" | "u" => r"\cup",
+
         "<" => r"\lt",
         "<=" => r"\le",
         ">" => r"\gt",
         ">=" => r"\ge",
+        "<<" => r"\ll",
+        "<<<" => r"\lll",
+        ">>" => r"\gg",
+        ">>>" => r"\ggg",
+
+        "_|_" => r"\bot",
+        "T" => r"\top",
+        "|-" => r"\vdash",
+        "||-" => r"\Vdash",
+        "|=" => r"\vDash",
+        "-|" => r"\dashv",
+
         "||" => r"\|",
-        "/" => "/",
-        "x" => r"\times",
+
+        "h-" => r"\hbar",
+        "t" => r"\dagger",
+        "A" => r"\forall",
+        "E" => r"\exists",
         "oo" => r"\infty",
+
+        "..." => r"\ldots",
+        "---" => r"\cdots",
         _ => return Err(()),
     }
     .to_string())
@@ -745,9 +798,9 @@ mod tests {
         assert_eq!(take_symbol("< a  dot  >").unwrap(), ("", x(r"\dot{a}")));
         assert_eq!(take_symbol("<  a dot>").unwrap(), ("", x(r"\dot{a}")));
         assert_eq!(take_symbol("<a dot !>").unwrap(), ("", x(r"\not{\dot{a}}")));
-        assert_eq!(take_symbol(".oo.").unwrap(), ("", x(r"\infty")));
-        assert_eq!(take_symbol(".oo.23").unwrap(), ("23", x(r"\infty")));
-        assert_eq!(take_symbol(".oo.'23").unwrap(), ("23", x(r"\infty'")));
+        assert_eq!(take_symbol("`oo`").unwrap(), ("", x(r"\infty")));
+        assert_eq!(take_symbol("`oo`23").unwrap(), ("23", x(r"\infty")));
+        assert_eq!(take_symbol("`oo`'23").unwrap(), ("23", x(r"\infty'")));
         assert_eq!(
             take_symbol("<α̇ tilde !>").unwrap(),
             ("", x(r"\not{\tilde{\dot{\alpha}}}"))
@@ -765,11 +818,12 @@ mod tests {
             take_symbol("<α̇  tilde !  >").unwrap(),
             ("", x(r"\not{\tilde{\dot{\alpha}}}"))
         );
-        assert_eq!(take_symbol("<.oo. !>").unwrap(), ("", x(r"\not{\infty}")));
-        assert_eq!(take_symbol("< .oo. !>").unwrap(), ("", x(r"\not{\infty}")));
-        assert_eq!(take_symbol("<.<. !>").unwrap(), ("", x(r"\not{\lt}")));
+        assert_eq!(take_symbol("<`oo` !>").unwrap(), ("", x(r"\not{\infty}")));
+        assert_eq!(take_symbol("< `oo` !>").unwrap(), ("", x(r"\not{\infty}")));
+        assert_eq!(take_symbol("<`<` !>").unwrap(), ("", x(r"\not{\lt}")));
+        assert_eq!(take_symbol("<!!>").unwrap(), ("", x(r"\not{!}")));
         assert_eq!(
-            take_symbol("<   .oo. !  >").unwrap(),
+            take_symbol("<   `oo` !  >").unwrap(),
             ("", x(r"\not{\infty}"))
         );
         assert_eq!(take_symbol("<alpha>").unwrap(), ("", x(r"\alpha")));
@@ -789,10 +843,6 @@ mod tests {
         assert_eq!(
             take_string_literal(r#""aaa""#).unwrap(),
             ("", x(r"\mathrm{aaa}"))
-        );
-        assert_eq!(
-            take_string_literal("`aa\"a`").unwrap(),
-            ("", x(r#"\mathrm{aa"a}"#))
         );
         assert_eq!(
             take_string_literal(r#"<"aaa">"#).unwrap(),
