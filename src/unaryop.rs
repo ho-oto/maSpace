@@ -27,8 +27,8 @@ pub fn take_op(s: &str) -> IResult<&str, Token> {
 fn take_op_unicode(s: &str) -> IResult<&str, String> {
     map_res(anychar, |c| match c {
         '√' => Ok(r"\sqrt".to_string()),
-        '∛' => Ok(r"\sqrt[3]".to_string()),
-        '∜' => Ok(r"\sqrt[4]".to_string()),
+        '∛' => Ok(r"\root[3]".to_string()),
+        '∜' => Ok(r"\root[4]".to_string()),
         _ => Err(()),
     })(s)
 }
@@ -63,5 +63,33 @@ fn take_root_in_angle_bracket(s: &str) -> IResult<&str, String> {
 fn tex_of_maybe_abbreviated_op_name(s: &str) -> String {
     match s {
         _ => format!(r"\{}", s),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn x(a: &str) -> (&str, Token) {
+        take_op(a).unwrap()
+    }
+    fn y(y: &str, z: usize) -> Token {
+        Token::Op(y.to_string(), z)
+    }
+
+    #[test]
+    fn test_take_op() {
+        assert_eq!(x("<'root>123"), (r"123", y(r"\root", 0)));
+        assert_eq!(x("<'root> 123"), (r"123", y(r"\root", 1)));
+        assert_eq!(x("<'root>   123"), (r"123", y(r"\root", 3)));
+        assert_eq!(x("<' root>123"), (r"123", y(r"\root", 0)));
+        assert_eq!(x("<'  root   > 123"), (r"123", y(r"\root", 1)));
+        assert_eq!(x("<'root  >   123"), (r"123", y(r"\root", 3)));
+        assert_eq!(x("<'root 1>123"), (r"123", y(r"\root[1]", 0)));
+        assert_eq!(x("<'root  123> 123"), (r"123", y(r"\root[123]", 1)));
+        assert_eq!(x("<'root1234>   123"), (r"123", y(r"\root[1234]", 3)));
+        assert_eq!(x("<' root>123"), (r"123", y(r"\root", 0)));
+        assert_eq!(x("√123"), (r"123", y(r"\sqrt", 0)));
+        assert_eq!(x("∜   123"), (r"123", y(r"\root[4]", 3)));
     }
 }
