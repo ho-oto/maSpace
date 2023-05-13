@@ -3,7 +3,7 @@ use super::token::Token;
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take_until},
-    character::complete::{alpha1, alphanumeric1, anychar, char, digit1},
+    character::complete::{alpha1, alphanumeric1, anychar, digit1},
     combinator::{flat_map, map, map_res, opt},
     multi::{count, fold_many0, many0, many1, many_till},
     sequence::{delimited, pair, preceded, terminated, tuple},
@@ -42,9 +42,9 @@ fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
 
 fn take_symbol_from_ascii_art(s: &str) -> IResult<&str, String> {
     delimited(
-        char('`'),
+        tag("`"),
         map_res(take_until("`"), tex_of_ascii_art),
-        char('`'),
+        tag("`"),
     )(s)
 }
 
@@ -77,7 +77,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
         map(
             tuple((
                 digit1,
-                opt(map(preceded(char('.'), digit1), |x| format!(".{}", x))),
+                opt(map(preceded(tag("."), digit1), |x| format!(".{}", x))),
             )),
             |(integer, decimal): (&str, Option<String>)| {
                 format!("{}{}", integer, decimal.unwrap_or_default(),)
@@ -86,7 +86,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     }
     flat_map(
         preceded(
-            pair(char('<'), many0(char(' '))),
+            pair(tag("<"), many0(tag(" "))),
             alt((
                 take_symbol_from_alpha2,
                 take_symbol_from_ascii_art,
@@ -99,15 +99,15 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                 fold_many0(
                     map(
                         alt((
-                            preceded(many0(char(' ')), tag("!")),
-                            preceded(many1(char(' ')), alphanumeric1),
+                            preceded(many0(tag(" ")), tag("!")),
+                            preceded(many1(tag(" ")), alphanumeric1),
                         )),
                         tex_of_maybe_abbreviated_accent_name,
                     ),
                     move || String::from(&tex),
                     |tex, accent| format!("{}{{{}}}", accent, tex),
                 ),
-                pair(many0(char(' ')), char('>')),
+                pair(many0(tag(" ")), tag(">")),
             )
         },
     )(s)
@@ -122,7 +122,7 @@ fn take_string_literal_plain(s: &str) -> IResult<&str, String> {
 fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
     flat_map(
         preceded(
-            pair(char('<'), many0(char(' '))),
+            pair(tag("<"), many0(tag(" "))),
             pair(
                 alt((take_string_literal_content, take_raw_string_literal_content)),
                 opt(alpha1),
@@ -132,13 +132,13 @@ fn take_string_literal_in_angle_brackets(s: &str) -> IResult<&str, String> {
             terminated(
                 map_res(
                     fold_many0(
-                        preceded(many1(char(' ')), alpha1),
+                        preceded(many1(tag(" ")), alpha1),
                         move || accent.into_iter().collect::<Vec<_>>(),
                         |accents, a| accents.into_iter().chain(once(a)).collect(),
                     ),
                     move |accents| resolve_string_literal_accent(&content, accents),
                 ),
-                pair(many0(char(' ')), char('>')),
+                pair(many0(tag(" ")), tag(">")),
             )
         },
     )(s)
@@ -584,6 +584,7 @@ fn tex_of_unicode_accent(c: char) -> Result<String, ()> {
 
 fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
     Ok(match s {
+        // binop
         "+-" => r"\pm",
         "-+" => r"\mp",
         "-:-" => r"\div",
@@ -594,7 +595,11 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         "(x)" | "(X)" => r"\otimes",
         "(+)" => r"\oplus",
         "(.)" => r"\odot",
-
+        "^" => r"\wedge",
+        "V" | "v" => r"\vee",
+        "n" => r"\cap",
+        "U" | "u" => r"\cup",
+        // rel
         "!=" => r"\ne",
         "-:" => r"\eqcolon",
         "-::" => r"\Eqcolon",
@@ -613,7 +618,19 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         ":~" => r"\colonsim",
         "::~" => r"\Colonsim",
         "oc" => r"\propto",
-
+        "<" => r"\lt",
+        "<=" => r"\le",
+        ">" => r"\gt",
+        ">=" => r"\ge",
+        "<<" => r"\ll",
+        "<<<" => r"\lll",
+        ">>" => r"\gg",
+        ">>>" => r"\ggg",
+        "|-" => r"\vdash",
+        "||-" => r"\Vdash",
+        "|=" => r"\vDash",
+        "-|" => r"\dashv",
+        // arrow
         "-->" => r"\leftarrow",
         "<--" => r"\rightarrow",
         "==>" => r"\Rightarrow",
@@ -627,38 +644,17 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         "<->" => r"\leftrightarrow",
         "~~>" => r"\rightsquigarrow",
         "<~>" => r"\leftrightsquigarrow",
-
-        "^" => r"\wedge",
-        "V" | "v" => r"\vee",
-        "n" => r"\cap",
-        "U" | "u" => r"\cup",
-
-        "<" => r"\lt",
-        "<=" => r"\le",
-        ">" => r"\gt",
-        ">=" => r"\ge",
-        "<<" => r"\ll",
-        "<<<" => r"\lll",
-        ">>" => r"\gg",
-        ">>>" => r"\ggg",
-
+        // symbol
         "_|_" => r"\bot",
         "T" => r"\top",
-        "|-" => r"\vdash",
-        "||-" => r"\Vdash",
-        "|=" => r"\vDash",
-        "-|" => r"\dashv",
-
-        "||" => r"\|",
-
         "h-" => r"\hbar",
         "t" | "+" => r"\dagger",
         "A" => r"\forall",
         "E" => r"\exists",
         "oo" => r"\infty",
-
         "..." => r"\ldots",
         "---" => r"\cdots",
+        "||" => r"\|",
         _ => return Err(()),
     }
     .to_string())
@@ -679,17 +675,17 @@ fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
 
 fn take_string_literal_content(s: &str) -> IResult<&str, String> {
     map(
-        delimited(char('"'), take_until("\""), char('"')),
+        delimited(tag(r#"""#), take_until(r#"""#), tag(r#"""#)),
         String::from,
     )(s)
 }
 
 fn take_raw_string_literal_content(s: &str) -> IResult<&str, String> {
     flat_map(
-        map(terminated(many1(char('#')), char('"')), |x| x.len()),
+        map(terminated(many1(tag("#")), tag(r#"""#)), |x| x.len()),
         |num| {
             map(
-                many_till(anychar, pair(char('"'), count(char('#'), num))),
+                many_till(anychar, pair(tag(r#"""#), count(tag("#"), num))),
                 |(content, _)| content.into_iter().collect(),
             )
         },
@@ -781,101 +777,59 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn x<T: Display>(y: T) -> Token {
+
+    fn x(a: &str) -> (&str, Token) {
+        take_symbol(a).unwrap()
+    }
+    fn y<T: Display>(y: T) -> Token {
         Token::Symbol(y.to_string())
     }
 
     #[test]
     fn test_take_symbol() {
-        assert_eq!(take_symbol("123").unwrap(), (r"23", x(r"1")));
-        assert_eq!(take_symbol("1.23").unwrap(), (r".23", x(r"1")));
-        assert_eq!(take_symbol("1'.23").unwrap(), (r".23", x(r"1'")));
-        assert_eq!(take_symbol("aΓ").unwrap(), (r"Γ", x(r"a")));
-        assert_eq!(take_symbol("Γa").unwrap(), ("a", x(r"\Gamma")));
-        assert_eq!(take_symbol("α̇bcd").unwrap(), ("bcd", x(r"\dot{\alpha}")));
-        assert_eq!(take_symbol("<a>''").unwrap(), ("", x("a''")));
-        assert_eq!(take_symbol("<a dot>'b").unwrap(), ("b", x(r"\dot{a}'")));
-        assert_eq!(take_symbol("< a  dot  >").unwrap(), ("", x(r"\dot{a}")));
-        assert_eq!(take_symbol("<  a dot>").unwrap(), ("", x(r"\dot{a}")));
-        assert_eq!(take_symbol("<a dot !>").unwrap(), ("", x(r"\not{\dot{a}}")));
-        assert_eq!(take_symbol("`oo`").unwrap(), ("", x(r"\infty")));
-        assert_eq!(take_symbol("`oo`23").unwrap(), ("23", x(r"\infty")));
-        assert_eq!(take_symbol("`oo`'23").unwrap(), ("23", x(r"\infty'")));
-        assert_eq!(take_symbol("0.1234ABC").unwrap(), (".1234ABC", x("0")));
-        assert_eq!(take_symbol("0A1B3C").unwrap(), ("A1B3C", x("0")));
-        assert_eq!(take_symbol("0 1 3").unwrap(), (" 1 3", x("0")));
-        assert_eq!(take_symbol("<1.23 hat>").unwrap(), ("", x(r"\hat{1.23}")));
+        assert_eq!(x("123"), (r"23", y(r"1")));
+        assert_eq!(x("1.23"), (r".23", y(r"1")));
+        assert_eq!(x("1'.23"), (r".23", y(r"1'")));
+        assert_eq!(x("aΓ"), (r"Γ", y(r"a")));
+        assert_eq!(x("Γa"), ("a", y(r"\Gamma")));
+        assert_eq!(x("α̇bcd"), ("bcd", y(r"\dot{\alpha}")));
+        assert_eq!(x("<a>''"), ("", y("a''")));
+        assert_eq!(x("<a dot>'b"), ("b", y(r"\dot{a}'")));
+        assert_eq!(x("< a  dot  >"), ("", y(r"\dot{a}")));
+        assert_eq!(x("<  a dot>"), ("", y(r"\dot{a}")));
+        assert_eq!(x("<a dot !>"), ("", y(r"\not{\dot{a}}")));
+        assert_eq!(x("`oo`"), ("", y(r"\infty")));
+        assert_eq!(x("`oo`23"), ("23", y(r"\infty")));
+        assert_eq!(x("`oo`'23"), ("23", y(r"\infty'")));
+        assert_eq!(x("0.1234ABC"), (".1234ABC", y("0")));
+        assert_eq!(x("0A1B3C"), ("A1B3C", y("0")));
+        assert_eq!(x("0 1 3"), (" 1 3", y("0")));
+        assert_eq!(x("<1.23 hat>"), ("", y(r"\hat{1.23}")));
+        assert_eq!(x("<α̇ tilde !>"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<α̇!>"), ("", y(r"\not{\dot{\alpha}}")));
+        assert_eq!(x("<α̇! tilde>"), ("", y(r"\tilde{\not{\dot{\alpha}}}")));
+        assert_eq!(x("< α̇ tilde ! >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<α̇  tilde !  >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<`oo` !>"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("< `oo` !>"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("<`<` !>"), ("", y(r"\not{\lt}")));
+        assert_eq!(x("<!!>"), ("", y(r"\not{!}")));
+        assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("<alpha>"), ("", y(r"\alpha")));
+        assert_eq!(x("<alpha dot>"), ("", y(r"\dot{\alpha}")));
+        assert_eq!(x(r#""aaa""#), ("", y(r"\mathrm{aaa}")));
+        assert_eq!(x(r#"<"aaa">"#), ("", y(r#"\mathrm{aaa}"#)));
+        assert_eq!(x(r#"< "aaa"  >"#), ("", y(r#"\mathrm{aaa}"#)));
+        assert_eq!(x(r#"< "aaa"bb  >"#), ("", y(r#"\mathbb{aaa}"#)));
+        assert_eq!(x(r#"< "aaa"  bf it>"#), ("", y(r#"\mathbfit{aaa}"#)));
+        assert_eq!(x(r#"<"aaa"it    bf>"#), ("", y(r#"\mathbfit{aaa}"#)));
+        assert_eq!(x(r#"<"aaa"it bf sf>"#), ("", y(r#"\mathbfsfit{aaa}"#)));
+        assert_eq!(x(r#"<"aaa"it bf>"#), ("", y(r#"\mathbfit{aaa}"#)));
+        assert_eq!(x(r####"< ##"aaa"## te  >"####), ("", y(r#"\text{aaa}"#)));
+        assert_eq!(x(r####"< ##"aaa"## te  >"####), ("", y(r#"\text{aaa}"#)));
         assert_eq!(
-            take_symbol("<α̇ tilde !>").unwrap(),
-            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
-        );
-        assert_eq!(take_symbol("<α̇!>").unwrap(), ("", x(r"\not{\dot{\alpha}}")));
-        assert_eq!(
-            take_symbol("<α̇! tilde>").unwrap(),
-            ("", x(r"\tilde{\not{\dot{\alpha}}}"))
-        );
-        assert_eq!(
-            take_symbol("< α̇ tilde ! >").unwrap(),
-            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
-        );
-        assert_eq!(
-            take_symbol("<α̇  tilde !  >").unwrap(),
-            ("", x(r"\not{\tilde{\dot{\alpha}}}"))
-        );
-        assert_eq!(take_symbol("<`oo` !>").unwrap(), ("", x(r"\not{\infty}")));
-        assert_eq!(take_symbol("< `oo` !>").unwrap(), ("", x(r"\not{\infty}")));
-        assert_eq!(take_symbol("<`<` !>").unwrap(), ("", x(r"\not{\lt}")));
-        assert_eq!(take_symbol("<!!>").unwrap(), ("", x(r"\not{!}")));
-        assert_eq!(
-            take_symbol("<   `oo` !  >").unwrap(),
-            ("", x(r"\not{\infty}"))
-        );
-        assert_eq!(take_symbol("<alpha>").unwrap(), ("", x(r"\alpha")));
-        assert_eq!(
-            take_symbol("<alpha dot>").unwrap(),
-            ("", x(r"\dot{\alpha}"))
-        );
-    }
-
-    #[test]
-    fn test_take_literal() {
-        assert_eq!(
-            take_raw_string_literal_content(r###"##"aa"#Ba"##"###).unwrap(),
-            ("", r##"aa"#Ba"##.to_string())
-        );
-
-        assert_eq!(take_symbol(r#""aaa""#).unwrap(), ("", x(r"\mathrm{aaa}")));
-        assert_eq!(
-            take_symbol(r#"<"aaa">"#).unwrap(),
-            ("", x(r#"\mathrm{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"< "aaa"  >"#).unwrap(),
-            ("", x(r#"\mathrm{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"< "aaa"bb  >"#).unwrap(),
-            ("", x(r#"\mathbb{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"< "aaa"  bf it>"#).unwrap(),
-            ("", x(r#"\mathbfit{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"<"aaa"it    bf>"#).unwrap(),
-            ("", x(r#"\mathbfit{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"<"aaa"it bf sf>"#).unwrap(),
-            ("", x(r#"\mathbfsfit{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r#"<"aaa"it bf>"#).unwrap(),
-            ("", x(r#"\mathbfit{aaa}"#))
-        );
-        assert_eq!(
-            take_symbol(r####"< ##"aaa"## te  >"####).unwrap(),
-            ("", x(r#"\text{aaa}"#))
+            x(r####"< ##"aa"#a"## te  >"####),
+            ("", y(r##"\text{aa"#a}"##))
         );
     }
 }
