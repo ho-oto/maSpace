@@ -60,9 +60,8 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     fn take_symbol_from_single_char_in_brackets(s: &str) -> IResult<&str, String> {
         flat_map(
             map_res(anychar, |c| match c {
-                '^' => Ok(r"\^".to_string()),
-                '_' => Ok(r"\_".to_string()),
-                '/' => Ok("/".to_string()),
+                '^' | '_' | '{' | '}' => Ok(format!(r"\{}", c)),
+                '/' | '[' | ']' | '(' | ')' => Ok(c.to_string()),
                 _ => tex_of_char(c),
             }),
             |tex| {
@@ -656,6 +655,12 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         "..." => r"\ldots",
         "---" => r"\cdots",
         "||" => r"\|",
+        "[" => "[",
+        "]" => "]",
+        "(" => "(",
+        ")" => ")",
+        "{" => r"\{",
+        "}" => r"\}",
         _ => return Err(()),
     }
     .to_string())
@@ -779,15 +784,14 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
 mod tests {
     use super::*;
 
-    fn x(a: &str) -> (&str, Token) {
-        take_symbol(a).unwrap()
-    }
-    fn y<T: Display>(y: T) -> Token {
-        Token::Symbol(y.to_string())
-    }
-
     #[test]
     fn test_take_symbol() {
+        fn x(s: &str) -> (&str, Token) {
+            take_symbol(s).unwrap()
+        }
+        fn y(s: &str) -> Token {
+            Token::Symbol(s.to_string())
+        }
         assert_eq!(x("123"), (r"23", y(r"1")));
         assert_eq!(x("1.23"), (r".23", y(r"1")));
         assert_eq!(x("1'.23"), (r".23", y(r"1'")));

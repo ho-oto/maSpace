@@ -70,15 +70,14 @@ fn tex_of_maybe_abbreviated_op_name(s: &str) -> String {
 mod tests {
     use super::*;
 
-    fn x(a: &str) -> (&str, Token) {
-        take_op(a).unwrap()
-    }
-    fn y(y: &str, z: usize) -> Token {
-        Token::Op(y.to_string(), z)
-    }
-
     #[test]
     fn test_take_op() {
+        fn x(a: &str) -> (&str, Token) {
+            take_op(a).unwrap()
+        }
+        fn y(y: &str, z: usize) -> Token {
+            Token::Op(y.to_string(), z)
+        }
         assert_eq!(x("<'root>123"), (r"123", y(r"\root", 0)));
         assert_eq!(x("<'root> 123"), (r"123", y(r"\root", 1)));
         assert_eq!(x("<'root>   123"), (r"123", y(r"\root", 3)));
