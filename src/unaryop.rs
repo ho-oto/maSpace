@@ -2,46 +2,66 @@ use super::token::Token;
 use super::util::*;
 
 use nom::{
-    bytes::complete::tag,
-    character::complete::{alphanumeric1, anychar},
-    combinator::{map, map_res},
-    sequence::{delimited, pair},
+    branch::alt,
+    bytes::complete::{is_a, tag},
+    character::complete::{alpha1, anychar, digit1},
+    combinator::{map, map_res, opt},
+    sequence::{delimited, pair, tuple},
     IResult,
 };
 
-pub fn take_op_unicode(s: &str) -> IResult<&str, Token> {
-    map(
-        pair(map_res(anychar, tex_of_unicode_op), num_space),
-        |(x, y)| Token::Op(x, y),
-    )(s)
-}
-
-pub fn take_op_in_angle_bracket(s: &str) -> IResult<&str, Token> {
+pub fn take_op(s: &str) -> IResult<&str, Token> {
     map(
         pair(
-            map_res(delimited(tag("<<"), alphanumeric1, tag(">>")), tex_of_ascii),
+            alt((
+                take_op_unicode,
+                take_root_in_angle_bracket,
+                take_op_in_angle_bracket,
+            )),
             num_space,
         ),
         |(x, y)| Token::Op(x, y),
     )(s)
 }
 
-fn tex_of_unicode_op(c: char) -> Result<String, ()> {
-    Ok(match c {
-        '√' => r"\sqrt",
-        '∛' => r"\sqrt[3]",
-        '∜' => r"\sqrt[4]",
-        _ => return Err(()),
-    }
-    .to_string())
+fn take_op_unicode(s: &str) -> IResult<&str, String> {
+    map_res(anychar, |c| match c {
+        '√' => Ok(r"\sqrt".to_string()),
+        '∛' => Ok(r"\sqrt[3]".to_string()),
+        '∜' => Ok(r"\sqrt[4]".to_string()),
+        _ => Err(()),
+    })(s)
 }
 
-fn tex_of_ascii(c: &str) -> Result<String, ()> {
-    Ok(match c {
-        "sqrt" | "root" => r"\sqrt",
-        "root3" => r"\sqrt[3]",
-        "root4" => r"\sqrt[4]",
-        _ => return Err(()),
+fn take_op_in_angle_bracket(s: &str) -> IResult<&str, String> {
+    map(
+        delimited(
+            pair(tag("<'"), opt(is_a(" "))),
+            alpha1,
+            pair(opt(is_a(" ")), tag(">")),
+        ),
+        tex_of_maybe_abbreviated_op_name,
+    )(s)
+}
+
+fn take_root_in_angle_bracket(s: &str) -> IResult<&str, String> {
+    map(
+        delimited(
+            tuple((
+                tag("<'"),
+                opt(is_a(" ")),
+                alt((tag("root"), tag("sqrt"))),
+                opt(is_a(" ")),
+            )),
+            digit1,
+            pair(opt(is_a(" ")), tag(">")),
+        ),
+        |x| format!(r"\root[{}]", x),
+    )(s)
+}
+
+fn tex_of_maybe_abbreviated_op_name(s: &str) -> String {
+    match s {
+        _ => format!(r"\{}", s),
     }
-    .to_string())
 }

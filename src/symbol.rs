@@ -1,5 +1,7 @@
 use super::token::Token;
 
+use std::{fmt::Display, iter::once};
+
 use nom::{
     branch::alt,
     bytes::complete::{is_a, tag, take_until},
@@ -9,7 +11,6 @@ use nom::{
     sequence::{delimited, pair, preceded, terminated, tuple},
     IResult,
 };
-use std::{fmt::Display, iter::once};
 use unicode_normalization::UnicodeNormalization;
 
 pub fn take_symbol(s: &str) -> IResult<&str, Token> {
