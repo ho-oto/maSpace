@@ -17,38 +17,38 @@
 | $a$ | `a` | `a` | `a`
 |||| `<a>`
 | $\hat a$ | `\hat a` | `hat a` | `â`
-|||| `<<hat>>a`
-|||| `<<hat>><a>`
+|||| `<'hat>a`
+|||| `<'hat><a>`
 |||| `<a hat>`
-| $\alpha$ | `\alpha` | `alpha` | `α`
-|||| `<alpha>`
+| $\alpha'$ | `\alpha'` | `alpha'` | `α'`
+|||| `<alpha>'`
 | $\not\hat\alpha$ | `\not\hat\alpha` | `cancel hat alpha` | `<alpha hat not>`
 |||| `<alpha hat!>`
-|||| `<!alpha hat>`
-|||| `<!α hat>`
-|||| `<!α̂>`
-|||| `<<not>><<hat>><alpha>`
+|||| `<α hat !>`
+|||| `<α̂!>`
+|||| `<'not><'hat><alpha>`
 |||| `α̸̂`
 | $\infty$ | `\infry` | `infty` | `<infty>`
-||| `oo` | `.oo.`
+||| `oo` | `` `oo` ``
 |||| `∞`
 | $\dot\infty$ | `\dot\infty` | `dot infty` | `<infty dot>`
-||| `dot oo` | `<.oo. dot>`
+||| `dot oo` | ``<`oo` dot>``
 |||| `<∞ dot>`
-| $<$ | `<` | `<` | `.<.`
-| $\not<$ | `\not<` | `cancel <` | `<.<. not>`
-|||| `<!.<.>`
+| $<$ | `<` | `<` | `` `<` ``
+| $\not<$ | `\not<` | `cancel <` | ``<`<` not>``
+|||| ``<!`<`>``
 |||| `≮`
-| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2` | `<<sqrt>>2`
-||| `sqrt[2]` | `<<sqrt>>[2]`
+| $\sqrt{2}$ | `\sqrt{2}` | `sqrt 2` | `<'sqrt>2`
+||| `sqrt[2]` | `<'sqrt>[2]`
 |||| `√2`
+|||| `` `_/`2 ``
+| $\sqrt[3]{123}$ | `\sqrt[3]{123}` | `root 3 123` | `3 _/ 123`
 | $\sqrt{3+4}$ | `\sqrt{3+4}` | `sqrt[3+4]` | `√ 3+4`
 |||| `√[3+4]`
-|||| `<<sqrt>> 3+4`
-|||| `<<sqrt>>[3+4]`
-| $\lVert a \rVert$ | `\lVert a \rVert` | `norm(a)` | `<<norm>>a`
-|||| `<<‖> a <‖>>`
-|||| `<<.\|\|.> a <.\|\|.>>`
+|||| `<'sqrt> 3+4`
+|||| `<'sqrt>[3+4]`
+| $\lVert a \rVert$ | `\lVert a \rVert` | `norm(a)` | `<'norm>a`
+|||| `` `[\|\|` a `\|\|]` ``
 | $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `<"abc" rm>`
 |||| `"abc"`
 |||| `<r#"abc">`
