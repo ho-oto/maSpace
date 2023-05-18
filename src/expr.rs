@@ -2,38 +2,40 @@ use super::token::Token;
 
 use std::fmt::Display;
 
-pub enum Math {
+pub enum Root {
     Root { root: Box<Frac>, body: Box<Frac> },
     Math { body: Box<Frac> },
     Symbol(String),
 }
 
-impl Math {
-    pub fn parse(order: usize, tokens: &[Token]) -> Result<(&[Token], Self), ()> {
-        let (tokens, root) = Frac::parse(order, tokens)?;
-        if tokens.is_empty() {
-            return Ok((
+impl Root {
+    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+        let (tokens, frac_first) = Frac::parse(tokens, order, order_max)?;
+        if let Some((sep, tokens)) = tokens.split_first() {
+            if *sep == Token::Root(order) {
+                let (tokens, frac_second) = Frac::parse(tokens, order, order_max)?;
+                Ok((
+                    tokens,
+                    Self::Root {
+                        root: Box::new(frac_first),
+                        body: Box::new(frac_second),
+                    },
+                ))
+            } else {
+                Err(())
+            }
+        } else {
+            Ok((
                 tokens,
                 Self::Math {
-                    body: Box::new(root),
+                    body: Box::new(frac_first),
                 },
-            ));
+            ))
         }
-        if tokens[0] != Token::Root(order) {
-            return Err(());
-        }
-        let (tokens, body) = Frac::parse(order, &tokens[1..])?;
-        Ok((
-            tokens,
-            Self::Root {
-                root: Box::new(root),
-                body: Box::new(body),
-            },
-        ))
     }
 }
 
-impl Display for Math {
+impl Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Root { root, body } => write!(f, r"\root[{{{}}}]{{{}}}", root, body)?,
@@ -46,20 +48,28 @@ impl Display for Math {
 
 pub enum Frac {
     Frac { nume: Stack, denom: Stack },
-    Stack { body: Stack },
+    Math { body: Stack },
 }
 
 impl Frac {
-    pub fn parse(order: usize, tokens: &[Token]) -> Result<(&[Token], Self), ()> {
-        let (tokens, nume) = Stack::parse(order, tokens)?;
-        if tokens.is_empty() {
-            return Ok((tokens, Self::Stack { body: nume }));
+    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+        let (tokens, stack_first) = Stack::parse(tokens, order, order_max)?;
+        if let Some((sep, tokens)) = tokens.split_first() {
+            if *sep == Token::Frac(order) {
+                let (tokens, stack_second) = Stack::parse(tokens, order, order_max)?;
+                Ok((
+                    tokens,
+                    Self::Frac {
+                        nume: stack_first,
+                        denom: stack_second,
+                    },
+                ))
+            } else {
+                Err(())
+            }
+        } else {
+            Ok((tokens, Self::Math { body: stack_first }))
         }
-        if tokens[0] != Token::Frac(order) {
-            return Err(());
-        }
-        let (tokens, denom) = Stack::parse(order, &tokens[1..])?;
-        Ok((tokens, Self::Frac { nume, denom }))
     }
 }
 
@@ -67,7 +77,7 @@ impl Display for Frac {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Frac { nume, denom } => write!(f, r"\frac{{{}}}{{{}}}", nume, denom)?,
-            Self::Stack { body } => write!(f, "{}", body)?,
+            Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
     }
@@ -80,8 +90,8 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn parse(order: usize, tokens: &[Token]) -> Result<(&[Token], Self), ()> {
-        let (tokens, body) = Inter::parse(order, tokens)?;
+    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+        let (tokens, body) = Inter::parse(tokens, order, order_max)?;
         let mut over = None;
         let mut under = None;
         if tokens.is_empty() {
@@ -89,9 +99,11 @@ impl Stack {
         }
         let rest;
         if tokens[0] == Token::Over(order) {
-            (rest, over) = Inter::parse(order, &tokens[1..]).map(|(x, y)| (x, Some(y)))?;
+            (rest, over) =
+                Inter::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
         } else if tokens[0] == Token::Under(order) {
-            (rest, under) = Inter::parse(order, &tokens[1..]).map(|(x, y)| (x, Some(y)))?;
+            (rest, under) =
+                Inter::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
         } else {
             return Err(());
         }
@@ -99,10 +111,12 @@ impl Stack {
             return Ok((rest, Self { body, over, under }));
         }
         if rest[0] == Token::Over(order) && over.is_none() {
-            let (rest, over) = Inter::parse(order, &rest[1..]).map(|(x, y)| (x, Some(y)))?;
+            let (rest, over) =
+                Inter::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
             Ok((rest, Self { body, over, under }))
         } else if rest[0] == Token::Under(order) && under.is_none() {
-            let (rest, under) = Inter::parse(order, &rest[1..]).map(|(x, y)| (x, Some(y)))?;
+            let (rest, under) =
+                Inter::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
             Ok((rest, Self { body, over, under }))
         } else {
             Err(())
@@ -149,8 +163,8 @@ pub struct Inter {
 }
 
 impl Inter {
-    pub fn parse(order: usize, tokens: &[Token]) -> Result<(&[Token], Self), ()> {
-        let (tokens, body) = Simple::parse(order, tokens)?;
+    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+        let (tokens, body) = Simple::parse(tokens, order, order_max)?;
         let mut sup = None;
         let mut sub = None;
         if tokens.is_empty() {
@@ -158,9 +172,11 @@ impl Inter {
         }
         let rest;
         if tokens[0] == Token::Sup(order) {
-            (rest, sup) = Simple::parse(order, &tokens[1..]).map(|(x, y)| (x, Some(y)))?;
+            (rest, sup) =
+                Simple::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
         } else if tokens[0] == Token::Sub(order) {
-            (rest, sub) = Simple::parse(order, &tokens[1..]).map(|(x, y)| (x, Some(y)))?;
+            (rest, sub) =
+                Simple::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
         } else {
             return Err(());
         }
@@ -168,10 +184,12 @@ impl Inter {
             return Ok((rest, Self { body, sup, sub }));
         }
         if rest[0] == Token::Sup(order) && sup.is_none() {
-            let (rest, sup) = Simple::parse(order, &rest[1..]).map(|(x, y)| (x, Some(y)))?;
+            let (rest, sup) =
+                Simple::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
             Ok((rest, Self { body, sup, sub }))
         } else if rest[0] == Token::Sub(order) && sub.is_none() {
-            let (rest, sub) = Simple::parse(order, &rest[1..]).map(|(x, y)| (x, Some(y)))?;
+            let (rest, sub) =
+                Simple::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
             Ok((rest, Self { body, sup, sub }))
         } else {
             Err(())
@@ -210,26 +228,23 @@ impl Display for Inter {
 pub enum Simple {
     UnaryExpr {
         operator: String,
-        body: Box<Math>,
+        body: Box<Root>,
     },
-    Cat(Vec<Math>),
+    Cat(Vec<Root>),
     Parened {
         open: String,
-        body: Math,
+        body: Root,
         close: String,
     },
 }
 
 impl Simple {
-    pub fn parse(order: usize, tokens: &[Token]) -> Result<(&[Token], Self), ()> {
+    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         if tokens.is_empty() {
             return Err(());
         }
         if let Some((Token::Open(open), rest)) = tokens.split_first() {
-            let (rest, body) = Math::parse(100, rest)?; // TODO: fix 100
-            if rest.is_empty() {
-                return Err(());
-            }
+            let (rest, body) = Root::parse(rest, order_max, order_max)?;
             if let Some((Token::Close(close), rest)) = rest.split_first() {
                 return Ok((
                     rest,
@@ -249,7 +264,7 @@ impl Simple {
             if order == 0 {
                 todo!()
             } else {
-                let (rest, body) = Math::parse(order - 1, rest)?;
+                let (rest, body) = Root::parse(rest, order - 1, order_max)?;
                 return Ok((
                     rest,
                     Self::UnaryExpr {
