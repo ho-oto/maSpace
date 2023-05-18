@@ -11,27 +11,23 @@ pub enum Root {
 impl Root {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         let (tokens, frac_first) = Frac::parse(tokens, order, order_max)?;
-        if let Some((sep, tokens)) = tokens.split_first() {
-            if *sep == Token::Root(order) {
-                let (tokens, frac_second) = Frac::parse(tokens, order, order_max)?;
-                Ok((
-                    tokens,
-                    Self::Root {
-                        root: Box::new(frac_first),
-                        body: Box::new(frac_second),
-                    },
-                ))
-            } else {
-                Err(())
-            }
-        } else {
-            Ok((
+        let Some((sep, tokens)) = tokens.split_first() else {
+            return Ok((
                 tokens,
-                Self::Math {
-                    body: Box::new(frac_first),
-                },
+                Self::Math { body: Box::new(frac_first) },
             ))
+        };
+        if *sep != Token::Root(order) {
+            return Err(());
         }
+        let (tokens, frac_second) = Frac::parse(tokens, order, order_max)?;
+        Ok((
+            tokens,
+            Self::Root {
+                root: Box::new(frac_first),
+                body: Box::new(frac_second),
+            },
+        ))
     }
 }
 
@@ -54,22 +50,20 @@ pub enum Frac {
 impl Frac {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         let (tokens, stack_first) = Stack::parse(tokens, order, order_max)?;
-        if let Some((sep, tokens)) = tokens.split_first() {
-            if *sep == Token::Frac(order) {
-                let (tokens, stack_second) = Stack::parse(tokens, order, order_max)?;
-                Ok((
-                    tokens,
-                    Self::Frac {
-                        nume: stack_first,
-                        denom: stack_second,
-                    },
-                ))
-            } else {
-                Err(())
-            }
-        } else {
-            Ok((tokens, Self::Math { body: stack_first }))
+        let Some((sep, tokens)) = tokens.split_first() else {
+            return Ok((tokens, Self::Math { body: stack_first }))
+        };
+        if *sep != Token::Frac(order) {
+            return Err(());
         }
+        let (tokens, stack_second) = Stack::parse(tokens, order, order_max)?;
+        Ok((
+            tokens,
+            Self::Frac {
+                nume: stack_first,
+                denom: stack_second,
+            },
+        ))
     }
 }
 
@@ -92,32 +86,30 @@ pub struct Stack {
 impl Stack {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         let (tokens, body) = Inter::parse(tokens, order, order_max)?;
-        let mut over = None;
-        let mut under = None;
-        if tokens.is_empty() {
-            return Ok((tokens, Self { body, over, under }));
-        }
-        let rest;
-        if tokens[0] == Token::Over(order) {
-            (rest, over) =
-                Inter::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-        } else if tokens[0] == Token::Under(order) {
-            (rest, under) =
-                Inter::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-        } else {
-            return Err(());
-        }
-        if rest.is_empty() {
-            return Ok((rest, Self { body, over, under }));
-        }
-        if rest[0] == Token::Over(order) && over.is_none() {
-            let (rest, over) =
-                Inter::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-            Ok((rest, Self { body, over, under }))
-        } else if rest[0] == Token::Under(order) && under.is_none() {
-            let (rest, under) =
-                Inter::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-            Ok((rest, Self { body, over, under }))
+        let Some((sep_first, tokens)) = tokens.split_first() else {
+            return Ok((tokens, Self { body, over: None, under: None }));
+        };
+        let (tokens, inter_first) = Inter::parse(tokens, order, order_max)?;
+        let Some((sep_second, tokens)) = tokens.split_first() else {
+            if *sep_first == Token::Over(order) {
+                let over = Some(inter_first);
+                return Ok((tokens, Self {body, over, under: None}));
+            } else if *sep_first == Token::Under(order) {
+                let under = Some(inter_first);
+                return Ok((tokens, Self {body, over: None, under}));
+            } else {
+                return Err(());
+            }
+        };
+        let (tokens, inter_second) = Inter::parse(tokens, order, order_max)?;
+        if *sep_first == Token::Over(order) && *sep_second == Token::Under(order) {
+            let over = Some(inter_first);
+            let under = Some(inter_second);
+            Ok((tokens, Self { body, over, under }))
+        } else if *sep_first == Token::Under(order) && *sep_second == Token::Over(order) {
+            let over = Some(inter_second);
+            let under = Some(inter_first);
+            Ok((tokens, Self { body, over, under }))
         } else {
             Err(())
         }
@@ -165,32 +157,30 @@ pub struct Inter {
 impl Inter {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         let (tokens, body) = Simple::parse(tokens, order, order_max)?;
-        let mut sup = None;
-        let mut sub = None;
-        if tokens.is_empty() {
-            return Ok((tokens, Self { body, sup, sub }));
-        }
-        let rest;
-        if tokens[0] == Token::Sup(order) {
-            (rest, sup) =
-                Simple::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-        } else if tokens[0] == Token::Sub(order) {
-            (rest, sub) =
-                Simple::parse(&tokens[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-        } else {
-            return Err(());
-        }
-        if rest.is_empty() {
-            return Ok((rest, Self { body, sup, sub }));
-        }
-        if rest[0] == Token::Sup(order) && sup.is_none() {
-            let (rest, sup) =
-                Simple::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-            Ok((rest, Self { body, sup, sub }))
-        } else if rest[0] == Token::Sub(order) && sub.is_none() {
-            let (rest, sub) =
-                Simple::parse(&rest[1..], order, order_max).map(|(x, y)| (x, Some(y)))?;
-            Ok((rest, Self { body, sup, sub }))
+        let Some((sep_first, tokens)) = tokens.split_first() else {
+            return Ok((tokens, Self { body, sup: None, sub: None }));
+        };
+        let (tokens, simple_first) = Simple::parse(tokens, order, order_max)?;
+        let Some((sep_second, tokens)) = tokens.split_first() else {
+            if *sep_first == Token::Sup(order) {
+                let sup = Some(simple_first);
+                return Ok((tokens, Self {body, sup, sub: None}));
+            } else if *sep_first == Token::Sub(order) {
+                let sub =Some(simple_first);
+                return Ok((tokens, Self {body, sup: None, sub}));
+            } else {
+                return Err(());
+            }
+        };
+        let (tokens, simple_second) = Simple::parse(tokens, order, order_max)?;
+        if *sep_first == Token::Sup(order) && *sep_second == Token::Sub(order) {
+            let sup = Some(simple_first);
+            let sub = Some(simple_second);
+            Ok((tokens, Self { body, sup, sub }))
+        } else if *sep_first == Token::Sub(order) && *sep_second == Token::Sup(order) {
+            let sup = Some(simple_second);
+            let sub = Some(simple_first);
+            Ok((tokens, Self { body, sup, sub }))
         } else {
             Err(())
         }
