@@ -11,7 +11,6 @@ use nom::branch::alt;
 use nom::combinator::{eof, not};
 use nom::multi::many0;
 use nom::sequence::{preceded, terminated};
-use nom::IResult;
 use unicode_normalization::UnicodeNormalization;
 
 use expr::*;
@@ -132,8 +131,12 @@ fn tokenize(s: &str) -> Result<Vec<Token>, ()> {
     Ok(t3)
 }
 
-fn parse(_: &[Token]) -> IResult<&[Token], Expr> {
-    todo!()
+fn parse(tokens: &[Token]) -> Result<Math, ()> {
+    let Some(order_max) = tokens.iter().map(|x| x.order()).max() else {
+        return Err(());
+    };
+    let (_, math) = Math::parse(tokens, order_max, order_max)?;
+    Ok(math)
 }
 
 fn main() {
@@ -141,5 +144,8 @@ fn main() {
         "{:#?}",
         tokenize(r"a + bᵃ⁺ᵇ⁼ᶜₕₒ/c <alpha>[<beta hat>^2] `(X)`   5_/ 123")
     );
-    //parse(vec![]).unwrap();
+    println!(
+        "{}",
+        parse(&tokenize(r"a + bᵃ⁺ᵇ⁼ᶜₕₒ/c <alpha>[<beta hat>^2] `(X)`   5_/ 123").unwrap()).unwrap()
+    );
 }
