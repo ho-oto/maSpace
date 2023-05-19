@@ -6,7 +6,16 @@ pub struct Math(Vec<Root>);
 
 impl Math {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
-        todo!()
+        let mut tokens = tokens;
+        let mut roots = vec![];
+        loop {
+            let (rest, root) = Root::parse(tokens, order, order_max)?;
+            roots.push(root);
+            tokens = rest;
+            if rest.is_empty() {
+                return Ok((tokens, Self(roots)));
+            }
+        }
     }
 }
 
@@ -257,10 +266,10 @@ pub enum Simple {
 impl Simple {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
         let (operator, tokens) = match tokens {
+            [] => return Err(()),
             [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
                 (Some(operator.to_owned()), tokens)
             }
-            [] => return Err(()),
             _ => (None, tokens),
         };
         if order == 0 {

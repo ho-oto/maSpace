@@ -72,7 +72,7 @@ fracⁱ = stackⁱ, ['/'ⁱ, stackⁱ];
 stackⁱ = interⁱ, ['^^'ⁱ, interⁱ], ['__'ⁱ, interⁱ];
 interⁱ = simpⁱ, ['^'ⁱ simpⁱ], ['_'ⁱ simpⁱ];
 simpⁱ = [opⁱ,] mathⁱ⁻¹;
-math⁻¹ = symbol | open, mathᵒᵒ, close;
+simp⁰ = [op⁰,] (symbol | open, mathᵒᵒ, close);
 ```
 
 ### example
