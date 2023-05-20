@@ -56,7 +56,7 @@ fn take_root_in_angle_bracket(s: &str) -> IResult<&str, String> {
             digit1,
             pair(opt(is_a(" ")), tag(">")),
         ),
-        |x| format!("\\root[{}]", x),
+        |x| format!("\\sqrt[{}]", x),
     )(s)
 }
 
@@ -84,11 +84,11 @@ mod tests {
         assert_eq!(x("<' root>123"), (r"123", y(r"\root", 0)));
         assert_eq!(x("<'  root   > 123"), (r"123", y(r"\root", 1)));
         assert_eq!(x("<'root  >   123"), (r"123", y(r"\root", 3)));
-        assert_eq!(x("<'root 1>123"), (r"123", y(r"\root[1]", 0)));
-        assert_eq!(x("<'root  123> 123"), (r"123", y(r"\root[123]", 1)));
-        assert_eq!(x("<'root1234>   123"), (r"123", y(r"\root[1234]", 3)));
+        assert_eq!(x("<'root 1>123"), (r"123", y(r"\sqrt[1]", 0)));
+        assert_eq!(x("<'root  123> 123"), (r"123", y(r"\sqrt[123]", 1)));
+        assert_eq!(x("<'root1234>   123"), (r"123", y(r"\sqrt[1234]", 3)));
         assert_eq!(x("<' root>123"), (r"123", y(r"\root", 0)));
         assert_eq!(x("√123"), (r"123", y(r"\sqrt", 0)));
-        assert_eq!(x("∜   123"), (r"123", y(r"\root[4]", 3)));
+        assert_eq!(x("∜   123"), (r"123", y(r"\sqrt[4]", 3)));
     }
 }
