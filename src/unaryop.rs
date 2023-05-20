@@ -27,8 +27,8 @@ pub fn take_op(s: &str) -> IResult<&str, Token> {
 fn take_op_unicode(s: &str) -> IResult<&str, String> {
     map_res(anychar, |c| match c {
         '√' => Ok(r"\sqrt".to_string()),
-        '∛' => Ok(r"\root[3]".to_string()),
-        '∜' => Ok(r"\root[4]".to_string()),
+        '∛' => Ok(r"\sqrt[3]".to_string()),
+        '∜' => Ok(r"\sqrt[4]".to_string()),
         _ => Err(()),
     })(s)
 }

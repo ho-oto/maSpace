@@ -131,9 +131,9 @@ fn tokenize(s: &str) -> Result<Vec<Token>, ()> {
     Ok(t3)
 }
 
-fn parse(tokens: &[Token]) -> Result<Math, ()> {
+fn parse(tokens: &[Token]) -> Result<Math, &str> {
     let Some(order_max) = tokens.iter().map(|x| x.order()).max() else {
-        return Err(());
+        return Err("parse error");
     };
     let (_, math) = Math::parse(tokens, order_max, order_max)?;
     Ok(math)

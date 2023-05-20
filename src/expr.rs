@@ -66,7 +66,7 @@ impl Root {
 impl Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Root { root, body } => write!(f, "\\root[{{{}}}]{{{}}}", root, body)?,
+            Self::Root { root, body } => write!(f, "\\sqrt[{{{}}}]{{{}}}", root, body)?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -205,7 +205,6 @@ impl Inter {
         order_max: usize,
     ) -> Result<(&[Token], Self), &str> {
         let (tokens, body) = Simple::parse(tokens, order, order_max)?;
-        println!("rest2: {:?}", tokens);
         match tokens {
             [Token::Sup(ord), tokens @ ..] if *ord == order => {
                 let (tokens, sup) = Simple::parse(tokens, order, order_max)?;
