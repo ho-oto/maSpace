@@ -6,7 +6,11 @@ use std::fmt::Display;
 pub struct Math(Vec<Root>);
 
 impl Math {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let mut roots = vec![];
         let mut tokens = tokens;
         loop {
@@ -14,8 +18,7 @@ impl Math {
             roots.push(root);
             tokens = match rest {
                 [Token::Cat(ord), tokens @ ..] if *ord == order => tokens,
-                [] => return Ok((rest, Self(roots))),
-                _ => return Err(()),
+                _ => return Ok((rest, Self(roots))),
             };
         }
     }
@@ -38,27 +41,25 @@ pub enum Root {
 }
 
 impl Root {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let (tokens, frac_first) = Frac::parse(tokens, order, order_max)?;
-        let Some((sep, tokens)) = tokens.split_first() else {
-            return Ok((
-                tokens,
-                Self::Math {
-                    body: frac_first
-                },
-            ))
-        };
-        if *sep != Token::Root(order) {
-            return Err(());
+        match tokens {
+            [Token::Root(ord), tokens @ ..] if *ord == order => {
+                let (tokens, frac_second) = Frac::parse(tokens, order, order_max)?;
+                Ok((
+                    tokens,
+                    Self::Root {
+                        root: frac_first,
+                        body: frac_second,
+                    },
+                ))
+            }
+            _ => Ok((tokens, Self::Math { body: frac_first })),
         }
-        let (tokens, frac_second) = Frac::parse(tokens, order, order_max)?;
-        Ok((
-            tokens,
-            Self::Root {
-                root: frac_first,
-                body: frac_second,
-            },
-        ))
     }
 }
 
@@ -79,27 +80,25 @@ pub enum Frac {
 }
 
 impl Frac {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let (tokens, stack_first) = Stack::parse(tokens, order, order_max)?;
-        let Some((sep, tokens)) = tokens.split_first() else {
-            return Ok((
-                tokens,
-                Self::Math {
-                    body: stack_first
-                }
-            ))
-        };
-        if *sep != Token::Frac(order) {
-            return Err(());
+        match tokens {
+            [Token::Frac(ord), tokens @ ..] if *ord == order => {
+                let (tokens, stack_second) = Stack::parse(tokens, order, order_max)?;
+                Ok((
+                    tokens,
+                    Self::Frac {
+                        nume: stack_first,
+                        denom: stack_second,
+                    },
+                ))
+            }
+            _ => Ok((tokens, Self::Math { body: stack_first })),
         }
-        let (tokens, stack_second) = Stack::parse(tokens, order, order_max)?;
-        Ok((
-            tokens,
-            Self::Frac {
-                nume: stack_first,
-                denom: stack_second,
-            },
-        ))
     }
 }
 
@@ -121,34 +120,41 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let (tokens, body) = Inter::parse(tokens, order, order_max)?;
-        let Some((sep_first, tokens)) = tokens.split_first() else {
-            return Ok((tokens, Self { body, over: None, under: None }));
-        };
-        let (tokens, inter_first) = Inter::parse(tokens, order, order_max)?;
-        let Some((sep_second, tokens)) = tokens.split_first() else {
-            if *sep_first == Token::Over(order) {
-                let over = Some(inter_first);
-                return Ok((tokens, Self { body, over, under: None }));
-            } else if *sep_first == Token::Under(order) {
-                let under = Some(inter_first);
-                return Ok((tokens, Self { body, over: None, under }));
-            } else {
-                return Err(());
+        match tokens {
+            [Token::Over(ord), tokens @ ..] if *ord == order => {
+                let (tokens, over) = Inter::parse(tokens, order, order_max)?;
+                let (over, under) = (Some(over), None);
+                match tokens {
+                    [Token::Under(ord), tokens @ ..] if *ord == order => {
+                        let (tokens, under) = Inter::parse(tokens, order, order_max)?;
+                        let under = Some(under);
+                        Ok((tokens, Self { body, over, under }))
+                    }
+                    _ => Ok((tokens, Self { body, over, under })),
+                }
             }
-        };
-        let (tokens, inter_second) = Inter::parse(tokens, order, order_max)?;
-        if *sep_first == Token::Over(order) && *sep_second == Token::Under(order) {
-            let over = Some(inter_first);
-            let under = Some(inter_second);
-            Ok((tokens, Self { body, over, under }))
-        } else if *sep_first == Token::Under(order) && *sep_second == Token::Over(order) {
-            let over = Some(inter_second);
-            let under = Some(inter_first);
-            Ok((tokens, Self { body, over, under }))
-        } else {
-            Err(())
+            [Token::Under(ord), tokens @ ..] if *ord == order => {
+                let (tokens, under) = Inter::parse(tokens, order, order_max)?;
+                let (over, under) = (None, Some(under));
+                match tokens {
+                    [Token::Over(ord), tokens @ ..] if *ord == order => {
+                        let (tokens, over) = Inter::parse(tokens, order, order_max)?;
+                        let over = Some(over);
+                        Ok((tokens, Self { body, over, under }))
+                    }
+                    _ => Ok((tokens, Self { body, over, under })),
+                }
+            }
+            _ => {
+                let (over, under) = (None, None);
+                Ok((tokens, Self { body, over, under }))
+            }
         }
     }
 }
@@ -193,34 +199,42 @@ pub struct Inter {
 }
 
 impl Inter {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let (tokens, body) = Simple::parse(tokens, order, order_max)?;
-        let Some((sep_first, tokens)) = tokens.split_first() else {
-            return Ok((tokens, Self { body, sup: None, sub: None }));
-        };
-        let (tokens, simple_first) = Simple::parse(tokens, order, order_max)?;
-        let Some((sep_second, tokens)) = tokens.split_first() else {
-            if *sep_first == Token::Sup(order) {
-                let sup = Some(simple_first);
-                return Ok((tokens, Self { body, sup, sub: None }));
-            } else if *sep_first == Token::Sub(order) {
-                let sub = Some(simple_first);
-                return Ok((tokens, Self { body, sup: None, sub }));
-            } else {
-                return Err(());
+        println!("rest2: {:?}", tokens);
+        match tokens {
+            [Token::Sup(ord), tokens @ ..] if *ord == order => {
+                let (tokens, sup) = Simple::parse(tokens, order, order_max)?;
+                let (sup, sub) = (Some(sup), None);
+                match tokens {
+                    [Token::Sub(ord), tokens @ ..] if *ord == order => {
+                        let (tokens, sub) = Simple::parse(tokens, order, order_max)?;
+                        let sub = Some(sub);
+                        Ok((tokens, Self { body, sup, sub }))
+                    }
+                    _ => Ok((tokens, Self { body, sup, sub })),
+                }
             }
-        };
-        let (tokens, simple_second) = Simple::parse(tokens, order, order_max)?;
-        if *sep_first == Token::Sup(order) && *sep_second == Token::Sub(order) {
-            let sup = Some(simple_first);
-            let sub = Some(simple_second);
-            Ok((tokens, Self { body, sup, sub }))
-        } else if *sep_first == Token::Sub(order) && *sep_second == Token::Sup(order) {
-            let sup = Some(simple_second);
-            let sub = Some(simple_first);
-            Ok((tokens, Self { body, sup, sub }))
-        } else {
-            Err(())
+            [Token::Sub(ord), tokens @ ..] if *ord == order => {
+                let (tokens, sub) = Simple::parse(tokens, order, order_max)?;
+                let (sup, sub) = (None, Some(sub));
+                match tokens {
+                    [Token::Sup(ord), tokens @ ..] if *ord == order => {
+                        let (tokens, sup) = Simple::parse(tokens, order, order_max)?;
+                        let sup = Some(sup);
+                        Ok((tokens, Self { body, sup, sub }))
+                    }
+                    _ => Ok((tokens, Self { body, sup, sub })),
+                }
+            }
+            _ => {
+                let (sup, sub) = (None, None);
+                Ok((tokens, Self { body, sup, sub }))
+            }
         }
     }
 }
@@ -272,9 +286,13 @@ pub enum Simple {
 }
 
 impl Simple {
-    pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
+    pub fn parse(
+        tokens: &[Token],
+        order: usize,
+        order_max: usize,
+    ) -> Result<(&[Token], Self), &str> {
         let (operator, tokens) = match tokens {
-            [] => return Err(()),
+            [] => return Err("failed to parse Simple: tokens is empty"),
             [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
                 (Some(operator.to_owned()), tokens)
             }
@@ -282,29 +300,29 @@ impl Simple {
         };
         if order == 0 {
             match tokens {
-                [Token::Symbol(symbol), tokens @ ..] => Ok((
-                    tokens,
-                    Self::UnarySymbol {
-                        operator,
-                        symbol: symbol.to_owned(),
-                    },
-                )),
+                [Token::Symbol(symbol), tokens @ ..] => {
+                    let symbol = symbol.to_owned();
+                    Ok((tokens, Self::UnarySymbol { operator, symbol }))
+                }
                 [Token::Open(open), tokens @ ..] => {
                     let (tokens, body) = Math::parse(tokens, order_max, order_max)?;
                     match tokens {
-                        [Token::Close(close), tokens @ ..] => Ok((
-                            tokens,
-                            Self::UnaryParened {
-                                operator,
-                                open: open.to_owned(),
-                                body,
-                                close: close.to_owned(),
-                            },
-                        )),
-                        _ => Err(()),
+                        [Token::Close(close), tokens @ ..] => {
+                            let (open, close) = (open.to_owned(), close.to_owned());
+                            Ok((
+                                tokens,
+                                Self::UnaryParened {
+                                    operator,
+                                    open,
+                                    body,
+                                    close,
+                                },
+                            ))
+                        }
+                        _ => Err("failed to parse Simple"),
                     }
                 }
-                _ => Err(()),
+                _ => Err("failed to parse Simple"),
             }
         } else {
             let (tokens, body) = Math::parse(tokens, order - 1, order_max)?;
@@ -350,5 +368,24 @@ impl Display for Simple {
             } => write!(f, "\\left{}{{{}}}\\right{}", open, body, close)?,
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_math() {
+        let x = [
+            Token::Symbol("a".to_string()),
+            Token::Sub(1),
+            Token::Symbol("b".to_string()),
+            Token::Sub(0),
+            Token::Symbol("c".to_string()),
+        ];
+        let hoge = Math::parse(&x, 1, 1);
+        println!("{}", hoge.unwrap().1);
+        //assert_eq!(hoge.unwrap().1.to_string(), "a_b".to_string());
     }
 }
