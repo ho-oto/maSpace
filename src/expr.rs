@@ -28,6 +28,8 @@ impl Display for Math {
         Ok(())
     }
 }
+
+#[derive(Debug, PartialEq, Eq)]
 pub enum Root {
     Root { root: Frac, body: Frac },
     Math { body: Frac },
@@ -68,6 +70,7 @@ impl Display for Root {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Frac {
     Frac { nume: Stack, denom: Stack },
     Math { body: Stack },
@@ -108,6 +111,7 @@ impl Display for Frac {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Stack {
     body: Inter,
     over: Option<Inter>,
@@ -179,6 +183,7 @@ impl Display for Stack {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Inter {
     body: Simple,
     sup: Option<Simple>,
@@ -246,6 +251,7 @@ impl Display for Inter {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Simple {
     UnaryExpr {
         operator: Option<String>,
