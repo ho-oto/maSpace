@@ -2,19 +2,21 @@ use super::token::Token;
 
 use std::fmt::Display;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct Math(Vec<Root>);
 
 impl Math {
     pub fn parse(tokens: &[Token], order: usize, order_max: usize) -> Result<(&[Token], Self), ()> {
-        let mut tokens = tokens;
         let mut roots = vec![];
+        let mut tokens = tokens;
         loop {
             let (rest, root) = Root::parse(tokens, order, order_max)?;
             roots.push(root);
-            tokens = rest;
-            if rest.is_empty() {
-                return Ok((tokens, Self(roots)));
-            }
+            tokens = match rest {
+                [Token::Cat(ord), tokens @ ..] if *ord == order => tokens,
+                [] => return Ok((rest, Self(roots))),
+                _ => return Err(()),
+            };
         }
     }
 }
