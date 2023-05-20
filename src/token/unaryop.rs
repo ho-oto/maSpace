@@ -1,5 +1,5 @@
-use super::token::Token;
 use super::util::*;
+use super::Token;
 
 use nom::{
     branch::alt,

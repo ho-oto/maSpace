@@ -2,6 +2,20 @@ use super::token::Token;
 
 use std::fmt::Display;
 
+pub fn parse(tokens: &[Token]) -> Result<Math, &str> {
+    let order_max = tokens
+        .iter()
+        .map(|x| x.order())
+        .max()
+        .ok_or("slice of tokens is empty")?;
+    let (rest, math) = Math::parse(tokens, order_max, order_max)?;
+    if rest.is_empty() {
+        eprintln!("unconsumed tokens: {:?}", rest);
+        return Err("some tokens are unconsumed");
+    }
+    Ok(math)
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Math(Vec<Root>);
 

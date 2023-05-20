@@ -1,6 +1,6 @@
 use super::open_close::*;
 use super::symbol::*;
-use super::token::*;
+use super::Token;
 
 use std::iter::once;
 

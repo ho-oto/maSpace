@@ -1,4 +1,4 @@
-use super::token::Token;
+use super::Token;
 
 use nom::{
     branch::alt,
