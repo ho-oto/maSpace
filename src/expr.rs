@@ -9,7 +9,7 @@ pub fn parse(tokens: &[Token]) -> Result<Math, &str> {
         .max()
         .ok_or("slice of tokens is empty")?;
     let (rest, math) = Math::parse(tokens, order_max, order_max)?;
-    if rest.is_empty() {
+    if !rest.is_empty() {
         eprintln!("unconsumed tokens: {:?}", rest);
         return Err("some tokens are unconsumed");
     }
