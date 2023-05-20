@@ -60,7 +60,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
     fn take_symbol_from_single_char_in_brackets(s: &str) -> IResult<&str, String> {
         flat_map(
             map_res(anychar, |c| match c {
-                '^' | '_' | '{' | '}' => Ok(format!(r"\{}", c)),
+                '^' | '_' | '{' | '}' => Ok(format!("\\{}", c)),
                 '/' | '[' | ']' | '(' | ')' => Ok(c.to_string()),
                 _ => tex_of_char(c),
             }),
@@ -154,10 +154,10 @@ fn tex_of_char(c: char) -> Result<String, ()> {
         c.to_string()
     }
     fn sym<T: Display>(s: T) -> String {
-        format!(r"\{}", s)
+        format!("\\{}", s)
     }
     fn cmb<T: Display>(op: &str, arg: T) -> String {
-        format!(r"\{}{{ {} }}", op, arg)
+        format!("\\{}{{{}}}", op, arg)
     }
 
     Ok(match c {
@@ -668,14 +668,14 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
 
 fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
     match s {
-        _ => format!(r"\{}", s),
+        _ => format!("\\{}", s),
     }
 }
 
 fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
     match s {
         "!" => r"\not".to_string(),
-        _ => format!(r"\{}", s),
+        _ => format!("\\{}", s),
     }
 }
 
@@ -702,7 +702,7 @@ fn escape_tex_string_math(s: &str) -> String {
     s.chars()
         .into_iter()
         .map(|c| match c {
-            '#' | '$' | '%' | '_' | '{' | '}' => format!(r"\{}", c),
+            '#' | '$' | '%' | '_' | '{' | '}' => format!("\\{}", c),
             '~' => r"{\textasciitilde}".to_string(),
             '^' => r"{\textasciicircum}".to_string(),
             '\\' => r"{\backslash}".to_string(),
@@ -715,7 +715,7 @@ fn escape_tex_string_text(s: &str) -> String {
     s.chars()
         .into_iter()
         .map(|c| match c {
-            '$' | '{' | '}' | '\\' => format!(r"\{}", c),
+            '$' | '{' | '}' | '\\' => format!("\\{}", c),
             _ => c.to_string(),
         })
         .collect()

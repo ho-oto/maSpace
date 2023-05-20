@@ -56,13 +56,13 @@ fn take_root_in_angle_bracket(s: &str) -> IResult<&str, String> {
             digit1,
             pair(opt(is_a(" ")), tag(">")),
         ),
-        |x| format!(r"\root[{}]", x),
+        |x| format!("\\root[{}]", x),
     )(s)
 }
 
 fn tex_of_maybe_abbreviated_op_name(s: &str) -> String {
     match s {
-        _ => format!(r"\{}", s),
+        _ => format!("\\{}", s),
     }
 }
 
