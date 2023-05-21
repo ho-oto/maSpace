@@ -80,7 +80,7 @@ impl Root {
 impl Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Root { root, body } => write!(f, "\\sqrt[{{{}}}]{{{}}}", root, body)?,
+            Self::Root { root, body } => write!(f, "\\sqrt[{}]{{{}}}", root, body)?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -354,7 +354,7 @@ impl Display for Simple {
             Self::UnaryExpr {
                 operator: None,
                 body,
-            } => write!(f, "{{{}}}", body)?,
+            } => write!(f, "{}", body)?,
             Self::UnarySymbol {
                 operator: Some(operator),
                 symbol,
@@ -362,23 +362,19 @@ impl Display for Simple {
             Self::UnarySymbol {
                 operator: None,
                 symbol,
-            } => write!(f, "{{{}}}", symbol)?,
+            } => write!(f, "{}", symbol)?,
             Self::UnaryParened {
                 operator: Some(operator),
                 open,
                 body,
                 close,
-            } => write!(
-                f,
-                "{}{{\\left{}{{{}}}\\right{}}}",
-                operator, open, body, close
-            )?,
+            } => write!(f, "{}{{\\left{}{}\\right{}}}", operator, open, body, close)?,
             Self::UnaryParened {
                 operator: None,
                 open,
                 body,
                 close,
-            } => write!(f, "\\left{}{{{}}}\\right{}", open, body, close)?,
+            } => write!(f, "\\left{}{}\\right{}", open, body, close)?,
         }
         Ok(())
     }
