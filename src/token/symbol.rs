@@ -675,6 +675,22 @@ fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
 fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
     match s {
         "!" => r"\not".to_string(),
+        "bb" => r"\mathbb".to_string(),
+        "b" | "bf" => r"\mathbf".to_string(),
+        "c" | "cc" | "ca" | "cal" => r"\mathcal".to_string(),
+        "f" | "fr" | "fra" | "frak" | "frk" => r"\mathfrak".to_string(),
+        "i" | "it" => r"\mathit".to_string(),
+        "r" | "rm" => r"\mathrm".to_string(),
+        "sc" | "scr" => r"\mathscr".to_string(),
+        "sf" => r"\mathsf".to_string(),
+        "tt" => r"\mathtt".to_string(),
+        "bffr" | "frbf" | "bffrak" | "frakbf" | "mathfrakbf" => r"\mathbffrak".to_string(),
+        "bfit" | "itbf" | "mathitbf" => r"\mathbfit".to_string(),
+        "bfsc" | "scbf" | "bfscr" | "scrbf" | "mathscrbf" => r"\mathbfscr".to_string(),
+        "bfsf" | "sfbf" | "mathsfbf" => r"\mathbfsf".to_string(),
+        "sfit" | "itsf" | "mathitsf" => r"\mathsfit".to_string(),
+        "bfsfit" | "bfitsf" | "sfbfit" | "sfitbf" | "itsfbf" | "itbfsf" | "mathbfitsf"
+        | "mathsfbfit" | "mathsfitbf" | "mathitsfbf" | "mathitbfsf" => r"\mathbfsfit".to_string(),
         _ => format!("\\{}", s),
     }
 }
@@ -744,7 +760,6 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
                 | "mathbfitsf" | "mathsfbfit" | "mathsfitbf" | "mathitsfbf" | "mathitbfsf" => {
                     "bfsfit"
                 }
-                "t" | "te" | "text" => "text",
                 _ => return Err(()),
             })
         })

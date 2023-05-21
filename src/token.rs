@@ -42,6 +42,7 @@ impl Token {
             | Self::Sup(ord)
             | Self::Over(ord)
             | Self::Under(ord)
+            | Self::Root(ord)
             | Self::Frac(ord)
             | Self::Op(_, ord) => *ord,
             _ => 0,
