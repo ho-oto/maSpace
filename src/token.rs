@@ -52,7 +52,6 @@ impl Token {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct TokenizeError {
     description: String,

@@ -3,7 +3,6 @@ use super::token::Token;
 use std::error::Error;
 use std::fmt::Display;
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct ParseError {
     description: String,
