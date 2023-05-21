@@ -1,8 +1,14 @@
 pub mod expr;
 pub mod token;
 
-use expr::*;
-use token::*;
+use expr::parse;
+use token::tokenize;
+
+pub fn maspace(input: &str) -> Result<String, String> {
+    parse(&tokenize(input).map_err(|x| format!("{:?}", x))?)
+        .map(|x| x.to_string())
+        .map_err(|x| format!("{:?}", x))
+}
 
 fn main() {
     println!(

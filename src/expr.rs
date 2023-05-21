@@ -2,16 +2,24 @@ use super::token::Token;
 
 use std::fmt::Display;
 
-pub fn parse(tokens: &[Token]) -> Result<Math, &str> {
-    let order_max = tokens
-        .iter()
-        .map(|x| x.order())
-        .max()
-        .ok_or("slice of tokens is empty")?;
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct ParseError<'a> {
+    description: String,
+    unconsumed_tokens: &'a [Token],
+}
+
+pub fn parse<'a>(tokens: &'a [Token]) -> Result<Math, ParseError<'a>> {
+    let order_max = tokens.iter().map(|x| x.order()).max().ok_or(ParseError {
+        description: "input tokens are empty".to_string(),
+        unconsumed_tokens: tokens,
+    })?;
     let (rest, math) = Math::parse(tokens, order_max, order_max)?;
     if !rest.is_empty() {
-        eprintln!("unconsumed tokens: {:?}", rest);
-        return Err("some tokens are unconsumed");
+        return Err(ParseError {
+            description: "some tokens are unconsumed".to_string(),
+            unconsumed_tokens: rest,
+        });
     }
     Ok(math)
 }
@@ -20,11 +28,11 @@ pub fn parse(tokens: &[Token]) -> Result<Math, &str> {
 pub struct Math(Vec<Root>);
 
 impl Math {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let mut roots = vec![];
         let mut tokens = tokens;
         loop {
@@ -55,11 +63,11 @@ pub enum Root {
 }
 
 impl Root {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let (tokens, frac_first) = Frac::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Root(ord), tokens @ ..] if *ord == order => {
@@ -94,11 +102,11 @@ pub enum Frac {
 }
 
 impl Frac {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let (tokens, stack_first) = Stack::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Frac(ord), tokens @ ..] if *ord == order => {
@@ -134,11 +142,11 @@ pub struct Stack {
 }
 
 impl Stack {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let (tokens, body) = Inter::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Over(ord), tokens @ ..] if *ord == order => {
@@ -213,11 +221,11 @@ pub struct Inter {
 }
 
 impl Inter {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let (tokens, body) = Simple::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Sup(ord), tokens @ ..] if *ord == order => {
@@ -299,13 +307,18 @@ pub enum Simple {
 }
 
 impl Simple {
-    pub fn parse(
-        tokens: &[Token],
+    pub fn parse<'a>(
+        tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&[Token], Self), &str> {
+    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
         let (operator, tokens) = match tokens {
-            [] => return Err("failed to parse Simple: tokens is empty"),
+            [] => {
+                return Err(ParseError {
+                    description: "failed to parse Simple: tokens is empty".to_string(),
+                    unconsumed_tokens: tokens,
+                })
+            }
             [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
                 (Some(operator.to_owned()), tokens)
             }
@@ -332,10 +345,16 @@ impl Simple {
                                 },
                             ))
                         }
-                        _ => Err("failed to parse Simple"),
+                        _ => Err(ParseError {
+                            description: "failed to parse Simple".to_string(),
+                            unconsumed_tokens: tokens,
+                        }),
                     }
                 }
-                _ => Err("failed to parse Simple"),
+                _ => Err(ParseError {
+                    description: "failed to parse Simple".to_string(),
+                    unconsumed_tokens: tokens,
+                }),
             }
         } else {
             let (tokens, body) = Math::parse(tokens, order - 1, order_max)?;

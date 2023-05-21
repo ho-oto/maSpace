@@ -49,7 +49,14 @@ impl Token {
     }
 }
 
-pub fn tokenize(s: &str) -> Result<Vec<Token>, ()> {
+#[allow(dead_code)]
+#[derive(Debug)]
+pub struct TokenizeError {
+    description: String,
+    detail: Option<String>,
+}
+
+pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
     // normalize
     let s = s.nfd().to_string();
     let s = s.trim();
@@ -69,7 +76,10 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, ()> {
         )),
         eof,
     )(&s)
-    .map_err(|_| ())?;
+    .map_err(|x| TokenizeError {
+        description: "tokenize failed".to_string(),
+        detail: Some(format!("{:?}", x)),
+    })?;
     // remove unicode sub/sup
     let mut t2 = vec![];
     enum Mode {
