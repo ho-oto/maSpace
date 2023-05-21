@@ -5,9 +5,6 @@ pub mod unaryop;
 pub mod unicode_subsup;
 pub mod util;
 
-use std::error::Error;
-use std::fmt::Display;
-
 use nom::branch::alt;
 use nom::combinator::{eof, not};
 use nom::multi::many0;
@@ -58,7 +55,7 @@ pub struct TokenizeError {
     detail: Option<String>,
 }
 
-impl Display for TokenizeError {
+impl std::fmt::Display for TokenizeError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{}", self.description)?;
         if let Some(detail) = &self.detail {
@@ -68,14 +65,14 @@ impl Display for TokenizeError {
     }
 }
 
-impl Error for TokenizeError {}
+impl std::error::Error for TokenizeError {}
 
 pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
     // normalize
     let s = s.nfd().to_string();
     let s = s.trim();
     // tokenize
-    let (_, t) = terminated(
+    let (_, nom_outputs) = terminated(
         many0(preceded(
             not(eof),
             alt((
@@ -95,89 +92,89 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
         detail: Some(format!("{:?}", x)),
     })?;
     // remove unicode sub/sup
-    let mut t2 = vec![];
+    let mut no_unicode_sub_sup = vec![];
     enum Mode {
         Sup,
         Sub,
         Normal,
     }
     let mut mode = Mode::Normal;
-    for x in t {
+    for x in nom_outputs {
         match x {
             Token::UnicodeSub(y) => {
                 match mode {
                     Mode::Normal => {
-                        t2.push(Token::Sub(0));
-                        t2.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Sub(0));
+                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
                     }
                     Mode::Sub => {}
                     Mode::Sup => {
-                        t2.push(Token::Close(".".to_string()));
-                        t2.push(Token::Sub(0));
-                        t2.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Close(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Sub(0));
+                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
                     }
                 };
-                t2.push(*y);
+                no_unicode_sub_sup.push(*y);
                 mode = Mode::Sub;
             }
             Token::UnicodeSup(y) => {
                 match mode {
                     Mode::Normal => {
-                        t2.push(Token::Sup(0));
-                        t2.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Sup(0));
+                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
                     }
                     Mode::Sub => {
-                        t2.push(Token::Close(".".to_string()));
-                        t2.push(Token::Sup(0));
-                        t2.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Close(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Sup(0));
+                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
                     }
                     Mode::Sup => {}
                 };
-                t2.push(*y);
+                no_unicode_sub_sup.push(*y);
                 mode = Mode::Sup;
             }
             _ => {
                 match mode {
-                    Mode::Sub | Mode::Sup => t2.push(Token::Close(".".to_string())),
+                    Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close(".".to_string())),
                     Mode::Normal => {}
                 }
-                t2.push(x);
+                no_unicode_sub_sup.push(x);
                 mode = Mode::Normal;
             }
         };
     }
     match mode {
-        Mode::Sub | Mode::Sup => t2.push(Token::Close(".".to_string())),
+        Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close(".".to_string())),
         Mode::Normal => {}
     }
     // insert Cat(0) between adjacent symbol
-    let mut t3 = vec![];
+    let mut cat_inserted = vec![];
     let mut after_symbol = false;
-    for x in t2 {
+    for x in no_unicode_sub_sup {
         match x {
             Token::Symbol(_) => {
                 if after_symbol {
-                    t3.push(Token::Cat(0));
+                    cat_inserted.push(Token::Cat(0));
                 }
-                t3.push(x);
+                cat_inserted.push(x);
                 after_symbol = true;
             }
             Token::Open(_) => {
                 if after_symbol {
-                    t3.push(Token::Cat(0));
+                    cat_inserted.push(Token::Cat(0));
                 }
-                t3.push(x);
+                cat_inserted.push(x);
                 after_symbol = false;
             }
             Token::Close(_) => {
-                t3.push(x);
+                cat_inserted.push(x);
                 after_symbol = true;
             }
             _ => {
-                t3.push(x);
+                cat_inserted.push(x);
                 after_symbol = false;
             }
         }
     }
-    Ok(t3)
+    Ok(cat_inserted)
 }

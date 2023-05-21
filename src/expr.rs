@@ -1,6 +1,5 @@
 use super::token::Token;
 
-use std::error::Error;
 use std::fmt::Display;
 
 #[derive(Debug)]
@@ -17,7 +16,7 @@ impl Display for ParseError {
     }
 }
 
-impl Error for ParseError {}
+impl std::error::Error for ParseError {}
 
 pub fn parse(tokens: &[Token]) -> Result<Math, ParseError> {
     let order_max = tokens.iter().map(|x| x.order()).max().ok_or(ParseError {

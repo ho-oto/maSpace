@@ -1,8 +1,9 @@
 pub mod expr;
 pub mod token;
 
-use anyhow::{Context, Result};
 use std::io;
+
+use anyhow::{Context, Result};
 
 use expr::parse;
 use token::tokenize;
