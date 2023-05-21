@@ -5,6 +5,9 @@ pub mod unaryop;
 pub mod unicode_subsup;
 pub mod util;
 
+use std::error::Error;
+use std::fmt::Display;
+
 use nom::branch::alt;
 use nom::combinator::{eof, not};
 use nom::multi::many0;
@@ -17,7 +20,7 @@ use symbol::take_symbol;
 use unaryop::take_op;
 use unicode_subsup::{take_unicode_sub, take_unicode_sup};
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Token {
     Cat(usize),
     Sub(usize),
@@ -55,6 +58,18 @@ pub struct TokenizeError {
     description: String,
     detail: Option<String>,
 }
+
+impl Display for TokenizeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.description)?;
+        if let Some(detail) = &self.detail {
+            writeln!(f, "{}", detail)?;
+        }
+        Ok(())
+    }
+}
+
+impl Error for TokenizeError {}
 
 pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
     // normalize

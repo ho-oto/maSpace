@@ -1,24 +1,35 @@
 use super::token::Token;
 
+use std::error::Error;
 use std::fmt::Display;
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct ParseError<'a> {
+pub struct ParseError {
     description: String,
-    unconsumed_tokens: &'a [Token],
+    unconsumed_tokens: Vec<Token>,
 }
 
-pub fn parse<'a>(tokens: &'a [Token]) -> Result<Math, ParseError<'a>> {
+impl Display for ParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.description)?;
+        writeln!(f, "unconsumed_tokens {:?}", self.unconsumed_tokens)?;
+        Ok(())
+    }
+}
+
+impl Error for ParseError {}
+
+pub fn parse(tokens: &[Token]) -> Result<Math, ParseError> {
     let order_max = tokens.iter().map(|x| x.order()).max().ok_or(ParseError {
         description: "input tokens are empty".to_string(),
-        unconsumed_tokens: tokens,
+        unconsumed_tokens: tokens.to_owned(),
     })?;
     let (rest, math) = Math::parse(tokens, order_max, order_max)?;
     if !rest.is_empty() {
         return Err(ParseError {
             description: "some tokens are unconsumed".to_string(),
-            unconsumed_tokens: rest,
+            unconsumed_tokens: rest.to_owned(),
         });
     }
     Ok(math)
@@ -32,7 +43,7 @@ impl Math {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let mut roots = vec![];
         let mut tokens = tokens;
         loop {
@@ -67,7 +78,7 @@ impl Root {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let (tokens, frac_first) = Frac::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Root(ord), tokens @ ..] if *ord == order => {
@@ -106,7 +117,7 @@ impl Frac {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let (tokens, stack_first) = Stack::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Frac(ord), tokens @ ..] if *ord == order => {
@@ -146,7 +157,7 @@ impl Stack {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let (tokens, body) = Inter::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Over(ord), tokens @ ..] if *ord == order => {
@@ -225,7 +236,7 @@ impl Inter {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let (tokens, body) = Simple::parse(tokens, order, order_max)?;
         match tokens {
             [Token::Sup(ord), tokens @ ..] if *ord == order => {
@@ -311,12 +322,12 @@ impl Simple {
         tokens: &'a [Token],
         order: usize,
         order_max: usize,
-    ) -> Result<(&'a [Token], Self), ParseError<'a>> {
+    ) -> Result<(&'a [Token], Self), ParseError> {
         let (operator, tokens) = match tokens {
             [] => {
                 return Err(ParseError {
                     description: "failed to parse Simple: tokens is empty".to_string(),
-                    unconsumed_tokens: tokens,
+                    unconsumed_tokens: tokens.to_owned(),
                 })
             }
             [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
@@ -347,13 +358,13 @@ impl Simple {
                         }
                         _ => Err(ParseError {
                             description: "failed to parse Simple".to_string(),
-                            unconsumed_tokens: tokens,
+                            unconsumed_tokens: tokens.to_owned(),
                         }),
                     }
                 }
                 _ => Err(ParseError {
                     description: "failed to parse Simple".to_string(),
-                    unconsumed_tokens: tokens,
+                    unconsumed_tokens: tokens.to_owned(),
                 }),
             }
         } else {
