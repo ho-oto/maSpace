@@ -422,8 +422,9 @@ mod tests {
             Token::Sub(0),
             Token::Symbol("c".to_string()),
         ];
-        let hoge = Math::parse(&x, 1, 1);
-        println!("{}", hoge.unwrap().1);
-        //assert_eq!(hoge.unwrap().1.to_string(), "a_b".to_string());
+        assert_eq!(
+            Math::parse(&x, 1, 1).unwrap().1.to_string(),
+            r"{a}_{{b}_{c}}".to_string()
+        );
     }
 }
