@@ -1,12 +1,23 @@
 pub mod expr;
 pub mod token;
 
-use std::io;
+use wasm_bindgen::prelude::*;
+
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
+// allocator.
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 use anyhow::{Context, Result};
 
 use expr::parse;
 use token::tokenize;
+
+#[wasm_bindgen]
+pub fn maspace_to_tex_wasm(input: &str) -> Result<String, String> {
+    maspace_to_tex(input).map_err(|x| format!("{:?}", x))
+}
 
 pub fn maspace_to_tex(input: &str) -> Result<String> {
     let tokens = tokenize(input).context("tokenize failed")?;
@@ -36,14 +47,4 @@ mod tests {
             r"{a}^{e}_{{b}_{{c}^{d}}}+\frac{{f}_{g}}{h}"
         );
     }
-}
-
-fn main() -> Result<()> {
-    let mut buffer = String::new();
-    io::stdin()
-        .read_line(&mut buffer)
-        .context("failed to read stdin")?;
-    let result = maspace_to_tex(&buffer)?;
-    println!("{}", result);
-    Ok(())
 }
