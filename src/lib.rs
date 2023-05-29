@@ -3,8 +3,6 @@ pub mod token;
 
 use wasm_bindgen::prelude::*;
 
-// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
-// allocator.
 #[cfg(feature = "wee_alloc")]
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -14,14 +12,14 @@ use anyhow::{Context, Result};
 use expr::parse;
 use token::tokenize;
 
-#[wasm_bindgen]
-pub fn maspace_to_tex_wasm(input: &str) -> Result<String, String> {
-    maspace_to_tex(input).map_err(|x| format!("{:?}", x))
-}
-
 pub fn maspace_to_tex(input: &str) -> Result<String> {
     let tokens = tokenize(input).context("tokenize failed")?;
     Ok(parse(&tokens).context("parse failed")?.to_string())
+}
+
+#[wasm_bindgen]
+pub fn maspace_to_tex_wasm(input: &str) -> Result<String, String> {
+    maspace_to_tex(input).map_err(|x| x.to_string())
 }
 
 #[cfg(test)]

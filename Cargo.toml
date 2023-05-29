@@ -1,5 +1,5 @@
 [package]
-name = "dotmath"
+name = "maspace"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,7 +11,10 @@ anyhow = "1.0.71"
 nom = "7.1.3"
 unicode-normalization = "0.1.22"
 wasm-bindgen = "0.2.86"
-wee_alloc = "0.4.5"
+wee_alloc = { version = "0.4.5", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.36"
+
+[features]
+default = ["wee_alloc"]
