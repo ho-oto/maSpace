@@ -760,6 +760,7 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
                 | "mathbfitsf" | "mathsfbfit" | "mathsfitbf" | "mathitsfbf" | "mathitbfsf" => {
                     "bfsfit"
                 }
+                "te" | "text" => "text",
                 _ => return Err(()),
             })
         })

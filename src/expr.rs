@@ -58,9 +58,15 @@ impl Math {
 impl Display for Math {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Self(roots) = self;
-        for root in roots {
-            write!(f, "{}", root)?
-        }
+        write!(
+            f,
+            "{}",
+            roots
+                .into_iter()
+                .map(|x| x.to_string())
+                .collect::<Vec<_>>()
+                .join(" ")
+        )?;
         Ok(())
     }
 }
