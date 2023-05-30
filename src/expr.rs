@@ -58,15 +58,11 @@ impl Math {
 impl Display for Math {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Self(roots) = self;
-        write!(
-            f,
-            "{}",
-            roots
-                .into_iter()
-                .map(|x| x.to_string())
-                .collect::<Vec<_>>()
-                .join(" ")
-        )?;
+        write!(f, " ")?;
+        for root in roots {
+            write!(f, "{}", root)?;
+        }
+        write!(f, " ")?;
         Ok(())
     }
 }
@@ -103,7 +99,7 @@ impl Root {
 impl Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Root { root, body } => write!(f, "\\sqrt[{}]{{{}}}", root, body)?,
+            Self::Root { root, body } => write!(f, "\\sqrt[ {} ]{{ {} }}", root, body)?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -142,7 +138,7 @@ impl Frac {
 impl Display for Frac {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Frac { nume, denom } => write!(f, "\\frac{{{}}}{{{}}}", nume, denom)?,
+            Self::Frac { nume, denom } => write!(f, "\\frac{{ {} }}{{ {} }}", nume, denom)?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -205,19 +201,19 @@ impl Display for Stack {
                 under: Some(under),
             } => write!(
                 f,
-                "\\underset{{{}}}{{\\overset{{{}}}{{{}}}}}",
+                "\\underset{{ {} }}{{\\overset{{ {} }}{{ {} }}}}",
                 under, over, body
             )?,
             Self {
                 body,
                 over: Some(over),
                 under: None,
-            } => write!(f, "\\overset{{{}}}{{{}}}", over, body)?,
+            } => write!(f, "\\overset{{ {} }}{{ {} }}", over, body)?,
             Self {
                 body,
                 over: None,
                 under: Some(under),
-            } => write!(f, "\\underset{{{}}}{{{}}}", under, body)?,
+            } => write!(f, "\\underset{{ {} }}{{ {} }}", under, body)?,
             Self {
                 body,
                 over: None,
@@ -282,17 +278,17 @@ impl Display for Inter {
                 body,
                 sup: Some(sup),
                 sub: Some(sub),
-            } => write!(f, "{{{}}}^{{{}}}_{{{}}}", body, sup, sub)?,
+            } => write!(f, "{{ {} }}^{{ {} }}_{{ {} }}", body, sup, sub)?,
             Self {
                 body,
                 sup: Some(sup),
                 sub: None,
-            } => write!(f, "{{{}}}^{{{}}}", body, sup)?,
+            } => write!(f, "{{ {} }}^{{ {} }}", body, sup)?,
             Self {
                 body,
                 sup: None,
                 sub: Some(sub),
-            } => write!(f, "{{{}}}_{{{}}}", body, sub)?,
+            } => write!(f, "{{ {} }}_{{ {} }}", body, sub)?,
             Self {
                 body,
                 sup: None,
@@ -384,7 +380,7 @@ impl Display for Simple {
             Self::UnaryExpr {
                 operator: Some(operator),
                 body,
-            } => write!(f, "{}{{{}}}", operator, body)?,
+            } => write!(f, "{}{{ {} }}", operator, body)?,
             Self::UnaryExpr {
                 operator: None,
                 body,
@@ -392,23 +388,30 @@ impl Display for Simple {
             Self::UnarySymbol {
                 operator: Some(operator),
                 symbol,
-            } => write!(f, "{}{{{}}}", operator, symbol)?,
+            } => write!(f, "{}{{ {} }}", operator, symbol)?,
             Self::UnarySymbol {
                 operator: None,
                 symbol,
-            } => write!(f, "{}", symbol)?,
+            } => match symbol.chars().next() {
+                Some('0'..='9' | '.') => write!(f, "{}", symbol)?,
+                _ => write!(f, " {} ", symbol)?,
+            },
             Self::UnaryParened {
                 operator: Some(operator),
                 open,
                 body,
                 close,
-            } => write!(f, "{}{{\\left{}{}\\right{}}}", operator, open, body, close)?,
+            } => write!(
+                f,
+                "{}{{\\left{} {} \\right{}}}",
+                operator, open, body, close
+            )?,
             Self::UnaryParened {
                 operator: None,
                 open,
                 body,
                 close,
-            } => write!(f, "\\left{}{}\\right{}", open, body, close)?,
+            } => write!(f, "\\left{} {} \\right{}", open, body, close)?,
         }
         Ok(())
     }
@@ -429,7 +432,7 @@ mod tests {
         ];
         assert_eq!(
             Math::parse(&x, 1, 1).unwrap().1.to_string(),
-            r"{a}_{{b}_{c}}".to_string()
+            r" {   a   }_{  {  b  }_{  c  }  } ".to_string()
         );
     }
 }

@@ -36,7 +36,7 @@ fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
         fold_many0(
             map_res(anychar, tex_of_unicode_accent),
             move || String::from(&tex),
-            |tex, accent| format!("{}{{{}}}", accent, tex),
+            |tex, accent| format!("{}{{ {} }}", accent, tex),
         )
     })(s)
 }
@@ -68,7 +68,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                 fold_many0(
                     map_res(anychar, tex_of_unicode_accent),
                     move || String::from(&tex),
-                    |tex, accent| format!("{}{{{}}}", accent, tex),
+                    |tex, accent| format!("{}{{ {} }}", accent, tex),
                 )
             },
         )(s)
@@ -105,7 +105,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                         tex_of_maybe_abbreviated_accent_name,
                     ),
                     move || String::from(&tex),
-                    |tex, accent| format!("{}{{{}}}", accent, tex),
+                    |tex, accent| format!("{}{{ {} }}", accent, tex),
                 ),
                 pair(many0(tag(" ")), tag(">")),
             )
@@ -157,7 +157,7 @@ fn tex_of_char(c: char) -> Result<String, ()> {
         format!("\\{}", s)
     }
     fn cmb<T: Display>(op: &str, arg: T) -> String {
-        format!("\\{}{{{}}}", op, arg)
+        format!("\\{}{{ {} }}", op, arg)
     }
 
     Ok(match c {
@@ -815,32 +815,44 @@ mod tests {
         assert_eq!(x("1'.23"), (r".23", y(r"1'")));
         assert_eq!(x("aΓ"), (r"Γ", y(r"a")));
         assert_eq!(x("Γa"), ("a", y(r"\Gamma")));
-        assert_eq!(x("α̇bcd"), ("bcd", y(r"\dot{\alpha}")));
+        assert_eq!(x("α̇bcd"), ("bcd", y(r"\dot{ \alpha }")));
         assert_eq!(x("<a>''"), ("", y("a''")));
-        assert_eq!(x("<a dot>'b"), ("b", y(r"\dot{a}'")));
-        assert_eq!(x("< a  dot  >"), ("", y(r"\dot{a}")));
-        assert_eq!(x("<  a dot>"), ("", y(r"\dot{a}")));
-        assert_eq!(x("<a dot !>"), ("", y(r"\not{\dot{a}}")));
+        assert_eq!(x("<a dot>'b"), ("b", y(r"\dot{ a }'")));
+        assert_eq!(x("< a  dot  >"), ("", y(r"\dot{ a }")));
+        assert_eq!(x("<  a dot>"), ("", y(r"\dot{ a }")));
+        assert_eq!(x("<a dot !>"), ("", y(r"\not{ \dot{ a } }")));
         assert_eq!(x("`oo`"), ("", y(r"\infty")));
         assert_eq!(x("`oo`23"), ("23", y(r"\infty")));
         assert_eq!(x("`oo`'23"), ("23", y(r"\infty'")));
         assert_eq!(x("0.1234ABC"), (".1234ABC", y("0")));
         assert_eq!(x("0A1B3C"), ("A1B3C", y("0")));
         assert_eq!(x("0 1 3"), (" 1 3", y("0")));
-        assert_eq!(x("<1.23 hat>"), ("", y(r"\hat{1.23}")));
-        assert_eq!(x("<α̇ tilde !>"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
-        assert_eq!(x("<α̇!>"), ("", y(r"\not{\dot{\alpha}}")));
-        assert_eq!(x("<α̇! tilde>"), ("", y(r"\tilde{\not{\dot{\alpha}}}")));
-        assert_eq!(x("< α̇ tilde ! >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
-        assert_eq!(x("<α̇  tilde !  >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
-        assert_eq!(x("<`oo` !>"), ("", y(r"\not{\infty}")));
-        assert_eq!(x("< `oo` !>"), ("", y(r"\not{\infty}")));
-        assert_eq!(x("<`<` !>"), ("", y(r"\not{\lt}")));
-        assert_eq!(x("<`<`^>"), ("", y(r"\hat{\lt}")));
-        assert_eq!(x("<!!>"), ("", y(r"\not{!}")));
-        assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("<1.23 hat>"), ("", y(r"\hat{ 1.23 }")));
+        assert_eq!(
+            x("<α̇ tilde !>"),
+            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
+        );
+        assert_eq!(x("<α̇!>"), ("", y(r"\not{ \dot{ \alpha } }")));
+        assert_eq!(
+            x("<α̇! tilde>"),
+            ("", y(r"\tilde{ \not{ \dot{ \alpha } } }"))
+        );
+        assert_eq!(
+            x("< α̇ tilde ! >"),
+            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
+        );
+        assert_eq!(
+            x("<α̇  tilde !  >"),
+            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
+        );
+        assert_eq!(x("<`oo` !>"), ("", y(r"\not{ \infty }")));
+        assert_eq!(x("< `oo` !>"), ("", y(r"\not{ \infty }")));
+        assert_eq!(x("<`<` !>"), ("", y(r"\not{ \lt }")));
+        assert_eq!(x("<`<`^>"), ("", y(r"\hat{ \lt }")));
+        assert_eq!(x("<!!>"), ("", y(r"\not{ ! }")));
+        assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{ \infty }")));
         assert_eq!(x("<alpha>"), ("", y(r"\alpha")));
-        assert_eq!(x("<alpha dot>"), ("", y(r"\dot{\alpha}")));
+        assert_eq!(x("<alpha dot>"), ("", y(r"\dot{ \alpha }")));
         assert_eq!(x(r#""aaa""#), ("", y(r"\mathrm{aaa}")));
         assert_eq!(x(r#"<"aaa">"#), ("", y(r#"\mathrm{aaa}"#)));
         assert_eq!(x(r#"< "aaa"  >"#), ("", y(r#"\mathrm{aaa}"#)));
