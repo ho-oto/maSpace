@@ -50,7 +50,6 @@ fn tex_of_char_open(c: char) -> Result<String, ()> {
         '⌊' => r"\lfloor",
         '⌜' => r"\ulcorner",
         '⌞' => r"\llcorner",
-        '⟦' => r"\llbracket",
         _ => return Err(()),
     }
     .to_string())
@@ -66,7 +65,6 @@ fn tex_of_char_close(c: char) -> Result<String, ()> {
         '⌋' => r"\rfloor",
         '⌝' => r"\urcorner",
         '⌟' => r"\lrcorner",
-        '⟧' => r"\rrbracket",
         _ => return Err(()),
     }
     .to_string())
@@ -82,7 +80,10 @@ fn tex_of_ascii_art_open(s: &str) -> Result<String, ()> {
         "[_" => r"\lfloor",
         "[|^" => r"\ulcorner",
         "[|_" => r"\llcorner",
-        "[[" => r"\llbracket",
+        "[[]" => "]",
+        "[[)" => ")",
+        "[[}" => r"\}",
+        "[[>" => r"\rangle",
         _ => return Err(()),
     }
     .to_string())
@@ -90,7 +91,7 @@ fn tex_of_ascii_art_open(s: &str) -> Result<String, ()> {
 
 fn tex_of_ascii_art_close(s: &str) -> Result<String, ()> {
     Ok(match s {
-        "]" => "[",
+        "]" => "]",
         ">]" => r"\rangle",
         "|]" => r"\rvert",
         "||]" => r"\rVert",
@@ -98,7 +99,10 @@ fn tex_of_ascii_art_close(s: &str) -> Result<String, ()> {
         "_]" => r"\rfloor",
         "^|]" => r"\urcorner",
         "_|]" => r"\lrcorner",
-        "]]" => r"\rrbracket",
+        "[]]" => "[",
+        "(]]" => "(",
+        "{]]" => r"\{",
+        "<]]" => r"\langle",
         _ => return Err(()),
     }
     .to_string())

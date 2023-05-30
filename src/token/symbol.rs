@@ -99,7 +99,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                 fold_many0(
                     map(
                         alt((
-                            preceded(many0(tag(" ")), tag("!")),
+                            preceded(many0(tag(" ")), alt((tag("!"), tag("^")))),
                             preceded(many1(tag(" ")), alphanumeric1),
                         )),
                         tex_of_maybe_abbreviated_accent_name,
@@ -171,29 +171,29 @@ fn tex_of_char(c: char) -> Result<String, ()> {
         //   ␠, ", ', (, ), /, <, >, [, ], ^, _, `, {, }
         // - Greek alphabets
         //   * capital
-        'Α' => sym("Alpha"),
-        'Β' => sym("Beta"),
+        'Α' => raw('A'),
+        'Β' => raw('B'),
         'Γ' => sym("Gamma"),
         'Δ' => sym("Delta"),
-        'Ε' => sym("Epsilon"),
-        'Ζ' => sym("Zeta"),
-        'Η' => sym("Eta"),
+        'Ε' => raw('E'),
+        'Ζ' => raw('Z'),
+        'Η' => raw('H'),
         'Θ' => sym("Theta"),
-        'Ι' => sym("Iota"),
-        'Κ' => sym("Kappa"),
+        'Ι' => raw('I'),
+        'Κ' => raw('K'),
         'Λ' => sym("Lambda"),
-        'Μ' => sym("Mu"),
-        'Ν' => sym("Nu"),
+        'Μ' => raw('M'),
+        'Ν' => raw('N'),
         'Ξ' => sym("Xi"),
-        'Ο' => sym("Omicron"),
+        'Ο' => raw('O'),
         'Π' => sym("Pi"),
-        'Ρ' => sym("Rho"),
+        'Ρ' => raw('P'),
         // '\u3a2' is unassigned
         'Σ' => sym("Sigma"),
-        'Τ' => sym("Tau"),
+        'Τ' => raw('T'),
         'Υ' => sym("Upsilon"),
         'Φ' => sym("Phi"),
-        'Χ' => sym("Chi"),
+        'Χ' => raw('X'),
         'Ψ' => sym("Psi"),
         'Ω' => sym("Omega"),
         //   * small
@@ -675,6 +675,7 @@ fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
 fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
     match s {
         "!" => r"\not".to_string(),
+        "^" => r"\hat".to_string(),
         "bb" => r"\mathbb".to_string(),
         "b" | "bf" => r"\mathbf".to_string(),
         "c" | "cc" | "ca" | "cal" => r"\mathcal".to_string(),
@@ -742,7 +743,7 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
         .into_iter()
         .map(|x| {
             Ok(match x {
-                "bb" | "mathbb" => "bb",
+                "B" | "bb" | "mathbb" => "bb",
                 "b" | "bf" | "mathbf" => "bf",
                 "c" | "cc" | "ca" | "cal" | "mathcal" => "cal",
                 "f" | "fr" | "fra" | "frak" | "frk" | "mathfrak" => "frak",
@@ -751,7 +752,8 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
                 "sc" | "scr" | "mathscr" => "scr",
                 "sf" | "mathsf" => "sf",
                 "tt" | "mathtt" => "tt",
-                "bffr" | "frbf" | "bffrak" | "frakbf" | "mathbffrak" | "mathfrakbf" => "bffrak",
+                "bffr" | "frbf" | "bffra" | "frabf" | "bffrk" | "frkbf" | "bffrak" | "frakbf"
+                | "mathbffrak" | "mathfrakbf" => "bffrak",
                 "bfit" | "itbf" | "mathbfit" | "mathitbf" => "bfit",
                 "bfsc" | "scbf" | "bfscr" | "scrbf" | "mathbfscr" | "mathscrbf" => "bfscr",
                 "bfsf" | "sfbf" | "mathbfsf" | "mathsfbf" => "bfsf",
@@ -760,7 +762,7 @@ fn resolve_string_literal_accent(content: &str, accents: Vec<&str>) -> Result<St
                 | "mathbfitsf" | "mathsfbfit" | "mathsfitbf" | "mathitsfbf" | "mathitbfsf" => {
                     "bfsfit"
                 }
-                "te" | "text" => "text",
+                "t" | "te" | "text" => "text",
                 _ => return Err(()),
             })
         })
@@ -834,6 +836,7 @@ mod tests {
         assert_eq!(x("<`oo` !>"), ("", y(r"\not{\infty}")));
         assert_eq!(x("< `oo` !>"), ("", y(r"\not{\infty}")));
         assert_eq!(x("<`<` !>"), ("", y(r"\not{\lt}")));
+        assert_eq!(x("<`<`^>"), ("", y(r"\hat{\lt}")));
         assert_eq!(x("<!!>"), ("", y(r"\not{!}")));
         assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{\infty}")));
         assert_eq!(x("<alpha>"), ("", y(r"\alpha")));
