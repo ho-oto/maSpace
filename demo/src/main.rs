@@ -8,7 +8,7 @@ use maspace::maspace_to_tex;
 
 #[wasm_bindgen(inline_js = r#"
 import "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg-full.js"
-export function _tex2svg(tex_input) {
+export function tex2svg(tex_input) {
     return MathJax.tex2svgPromise(tex_input).then(function (node) {
         const adaptor = MathJax.startup.adaptor;
         return adaptor.innerHTML(node);
@@ -17,12 +17,12 @@ export function _tex2svg(tex_input) {
 "#)]
 extern "C" {
     #[wasm_bindgen(catch)]
-    async fn _tex2svg(input: &str) -> Result<JsValue, JsValue>;
+    async fn tex2svg(input: &str) -> Result<JsValue, JsValue>;
 }
 
-async fn tex2svg(tex: &str) -> Result<(String, Html), String> {
+async fn maspace2svg(tex: &str) -> Result<(String, Html), String> {
     let tex = maspace_to_tex(tex).map_err(|x| format!("maspace error: {:?}", x))?;
-    let html = _tex2svg(&tex)
+    let html = tex2svg(&tex)
         .await
         .map(|x| Html::from_html_unchecked(AttrValue::from(x.as_string().unwrap_or_default())))
         .map_err(|x| x.as_string().unwrap_or_default())?;
@@ -34,7 +34,7 @@ fn App() -> Html {
     let value = use_state(|| String::from(""));
     let tex_code = {
         let value = value.clone();
-        use_async(async move { tex2svg(&value).await })
+        use_async(async move { maspace2svg(&value).await })
     };
 
     let on_input = {
