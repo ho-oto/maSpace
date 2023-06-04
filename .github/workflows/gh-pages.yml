@@ -24,7 +24,7 @@ jobs:
       - run: cargo install trunk
       - run: >-
           cd ./demo &&
-          trunk build --release --public-url maspace &&
+          trunk build --release &&
           cp -r ./dist/ ../public/ &&
           cd ..
       - run: cp -r ./demo/dist/ ./public/
