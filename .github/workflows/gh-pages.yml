@@ -25,7 +25,7 @@ jobs:
       - run: >-
           cd ./demo &&
           trunk build --release &&
-          sed -i -e 's|/yew-app|./yew-app|' ./dist/index.html &&
+          sed -i -e 's|/yew-app|./yew-app|g' ./dist/index.html &&
           cp -r ./dist/ ../public/ &&
           cd ..
       - run: cp -r ./demo/dist/ ./public/
