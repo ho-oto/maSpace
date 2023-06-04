@@ -1,5 +1,7 @@
 # maSpace
 
+[demo](https://ho-oto.github.io/maSpace/)
+
 ## sample
 
 | Result | LaTeX | AsciiMath | maSpace |
