@@ -383,7 +383,6 @@ dependencies = [
  "nom",
  "unicode-normalization",
  "wasm-bindgen",
- "wee_alloc",
 ]
 
 [[package]]
@@ -965,6 +964,7 @@ dependencies = [
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
+ "wee_alloc",
  "yew",
  "yew-hooks",
 ]

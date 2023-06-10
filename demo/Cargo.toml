@@ -11,3 +11,4 @@ web-sys = "0.3.63"
 yew = "0.20.0"
 yew-hooks = "0.2.0"
 maspace = { path = ".." }
+wee_alloc = "0.4.5"

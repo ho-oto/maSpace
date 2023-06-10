@@ -2,6 +2,9 @@ use wasm_bindgen::prelude::*;
 use yew::prelude::*;
 use yew_hooks::prelude::*;
 
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
 use web_sys::HtmlTextAreaElement;
 
 use maspace::maspace_to_tex;
@@ -50,7 +53,7 @@ fn App() -> Html {
     html! {
         <main>
             <div>
-                <textarea rows="10" cols="100" value={value.to_string()} oninput={on_input} />
+                <textarea style="width: 100%; box-sizing: border-box;" value={value.to_string()} oninput={on_input} />
             </div>
             <div>
                 {
