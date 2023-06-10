@@ -49,11 +49,13 @@ fn App() -> Html {
             tex_code.run();
         })
     };
-
     html! {
         <main>
             <div>
-                <textarea style="width: 100%; box-sizing: border-box;" value={value.to_string()} oninput={on_input} />
+                <textarea
+                    style="width: 100%; box-sizing: border-box;"
+                    value={value.to_string()}
+                    oninput={on_input}/>
             </div>
             <div>
                 {
@@ -66,24 +68,19 @@ fn App() -> Html {
             </div>
             <div>
                 {
-                    if let Some((tex, html)) = &tex_code.data {
-                        html!{
-                            <>
-                                <div>{"generated LaTeX code: "}{(*tex).clone()}</div>
-                                {(*html).clone()}
-                            </>
-                        }
-                    } else {
-                        html! {}
-                    }
-                }
-            </div>
-            <div>
-                {
-                    if let Some(error) = &tex_code.error {
-                        html! { error }
-                    } else {
-                        html! {}
+                    match (&tex_code.data, &tex_code.error) {
+                        (_, Some(error)) => {
+                            html!{ <div>{"error msg: "}{(*error).clone()}</div> }
+                        },
+                        (Some((tex, html)), None) => {
+                            html!{
+                                <>
+                                    <div>{"generated LaTeX code: "}{(*tex).clone()}</div>
+                                    {(*html).clone()}
+                                </>
+                            }
+                        },
+                        _ => html!{}
                     }
                 }
             </div>
