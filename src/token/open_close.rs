@@ -5,38 +5,44 @@ use nom::{
     bytes::complete::{is_a, tag, take_until},
     character::complete::anychar,
     combinator::{map, map_res, opt},
-    sequence::{delimited, pair},
+    sequence::{delimited, pair, preceded, terminated},
     IResult,
 };
 
 pub fn take_open(s: &str) -> IResult<&str, Token> {
-    map(
-        alt((
-            delimited(
-                tag("`"),
-                map_res(take_until("`"), tex_of_ascii_art_open),
-                tag("`"),
-            ),
-            map_res(anychar, tex_of_char_open),
-        )),
-        |x| Token::Open(x),
+    terminated(
+        map(
+            alt((
+                delimited(
+                    tag("`"),
+                    map_res(take_until("`"), tex_of_ascii_art_open),
+                    tag("`"),
+                ),
+                map_res(anychar, tex_of_char_open),
+            )),
+            |x| Token::Open(x),
+        ),
+        opt(is_a(" ")),
     )(s)
 }
 
 pub fn take_close(s: &str) -> IResult<&str, Token> {
-    map(
-        pair(
-            alt((
-                delimited(
-                    tag("`"),
-                    map_res(take_until("`"), tex_of_ascii_art_close),
-                    tag("`"),
-                ),
-                map_res(anychar, tex_of_char_close),
-            )),
-            opt(is_a("'")),
+    preceded(
+        opt(is_a(" ")),
+        map(
+            pair(
+                alt((
+                    delimited(
+                        tag("`"),
+                        map_res(take_until("`"), tex_of_ascii_art_close),
+                        tag("`"),
+                    ),
+                    map_res(anychar, tex_of_char_close),
+                )),
+                opt(is_a("'")),
+            ),
+            |(x, y)| Token::Close(format!("{}{}", x, y.unwrap_or_default())),
         ),
-        |(x, y)| Token::Close(format!("{}{}", x, y.unwrap_or_default())),
     )(s)
 }
 
