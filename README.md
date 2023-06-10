@@ -53,8 +53,8 @@
 |||| `` `[\|\|` a `\|\|]` ``
 | $\mathrm{abc}$ | `\mathrm{abc}` | `"abc"` | `<"abc" rm>`
 |||| `"abc"`
-|||| `<r#"abc">`
-|||| `<r##"abc"## rm>`
+|||| `<"abc">`
+|||| `<##"abc"## rm>`
 | $\mathbf{ab\\\#"c}$ | ``\mathbf{ab#"c}`` || `<r##"ab"#c"## bf>`
 
 ## Lexer

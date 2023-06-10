@@ -70,7 +70,11 @@ fn App() -> Html {
                 {
                     match (&tex_code.data, &tex_code.error) {
                         (_, Some(error)) => {
-                            html!{ <div>{"error msg: "}{(*error).clone()}</div> }
+                            html!{
+                                <div style="color: red;">
+                                    {"error msg: "}{(*error).clone()}
+                                </div>
+                            }
                         },
                         (Some((tex, html)), None) => {
                             html!{

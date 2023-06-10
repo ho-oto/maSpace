@@ -302,15 +302,15 @@ impl Display for Inter {
 #[derive(Debug, PartialEq, Eq)]
 pub enum Simple {
     UnaryExpr {
-        operator: Option<String>,
+        operators: Vec<String>,
         body: Math,
     },
     UnarySymbol {
-        operator: Option<String>,
+        operators: Vec<String>,
         symbol: String,
     },
     UnaryParened {
-        operator: Option<String>,
+        operators: Vec<String>,
         open: String,
         body: Math,
         close: String,
@@ -323,23 +323,28 @@ impl Simple {
         order: usize,
         order_max: usize,
     ) -> Result<(&'a [Token], Self), ParseError> {
-        let (operator, tokens) = match tokens {
-            [] => {
-                return Err(ParseError {
-                    description: "failed to parse Simple: tokens is empty".to_string(),
-                    unconsumed_tokens: tokens.to_owned(),
-                })
-            }
-            [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
-                (Some(operator.to_owned()), tokens)
-            }
-            _ => (None, tokens),
-        };
+        let mut tokens = tokens;
+        let mut operators = vec![];
+        loop {
+            tokens = match tokens {
+                [] => {
+                    return Err(ParseError {
+                        description: "failed to parse Simple: tokens is empty".to_string(),
+                        unconsumed_tokens: tokens.to_owned(),
+                    })
+                }
+                [Token::Op(operator, ord), tokens @ ..] if *ord == order => {
+                    operators.push(operator.to_owned());
+                    tokens
+                }
+                _ => break,
+            };
+        }
         if order == 0 {
             match tokens {
                 [Token::Symbol(symbol), tokens @ ..] => {
                     let symbol = symbol.to_owned();
-                    Ok((tokens, Self::UnarySymbol { operator, symbol }))
+                    Ok((tokens, Self::UnarySymbol { operators, symbol }))
                 }
                 [Token::Open(open), tokens @ ..] => {
                     let (tokens, body) = Math::parse(tokens, order_max, order_max)?;
@@ -349,7 +354,7 @@ impl Simple {
                             Ok((
                                 tokens,
                                 Self::UnaryParened {
-                                    operator,
+                                    operators,
                                     open,
                                     body,
                                     close,
@@ -369,49 +374,41 @@ impl Simple {
             }
         } else {
             let (tokens, body) = Math::parse(tokens, order - 1, order_max)?;
-            Ok((tokens, Self::UnaryExpr { operator, body }))
+            Ok((tokens, Self::UnaryExpr { operators, body }))
         }
     }
 }
 
 impl Display for Simple {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let operators = match self {
+            Self::UnaryExpr { operators, .. } => operators,
+            Self::UnaryParened { operators, .. } => operators,
+            Self::UnarySymbol { operators, .. } => operators,
+        };
+        let fmt_op = |x| {
+            let mut y = format!("{}", x);
+            for z in operators.iter().rev() {
+                y = format!("{}{{ {} }}", z, y);
+            }
+            y
+        };
         match self {
-            Self::UnaryExpr {
-                operator: Some(operator),
-                body,
-            } => write!(f, "{}{{ {} }}", operator, body)?,
-            Self::UnaryExpr {
-                operator: None,
-                body,
-            } => write!(f, "{}", body)?,
-            Self::UnarySymbol {
-                operator: Some(operator),
-                symbol,
-            } => write!(f, "{}{{ {} }}", operator, symbol)?,
-            Self::UnarySymbol {
-                operator: None,
-                symbol,
-            } => match symbol.chars().next() {
-                Some('0'..='9' | '.') => write!(f, "{}", symbol)?,
-                _ => write!(f, " {} ", symbol)?,
-            },
+            Self::UnaryExpr { body, .. } => write!(f, "{}", fmt_op(body.to_string()))?,
             Self::UnaryParened {
-                operator: Some(operator),
-                open,
-                body,
-                close,
+                open, body, close, ..
             } => write!(
                 f,
-                "{}{{\\left{} {} \\right{}}}",
-                operator, open, body, close
+                "{}",
+                fmt_op(format!("\\left{} {} \\right{}", open, body, close))
             )?,
-            Self::UnaryParened {
-                operator: None,
-                open,
-                body,
-                close,
-            } => write!(f, "\\left{} {} \\right{}", open, body, close)?,
+            Self::UnarySymbol { operators, symbol } if operators.is_empty() => {
+                match symbol.chars().next() {
+                    Some('0'..='9' | '.') => write!(f, "{}", symbol)?,
+                    _ => write!(f, " {} ", symbol)?,
+                }
+            }
+            Self::UnarySymbol { symbol, .. } => write!(f, "{}", fmt_op(symbol.to_string()))?,
         }
         Ok(())
     }
