@@ -177,5 +177,16 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
             }
         }
     }
-    Ok(cat_inserted)
+    let max_order = cat_inserted
+        .iter()
+        .map(|x| x.order())
+        .max()
+        .unwrap_or_default();
+    Ok(cat_inserted
+        .into_iter()
+        .map(|x| match x {
+            Token::Cat(ord) if ord > 0 => Token::Cat(max_order),
+            _ => x,
+        })
+        .collect::<Vec<_>>())
 }
