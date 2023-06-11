@@ -20,13 +20,28 @@ impl std::error::Error for ParseError {}
 
 pub fn parse(tokens: &[Token]) -> Result<Math, ParseError> {
     let order_max = tokens.iter().map(|x| x.order()).max().ok_or(ParseError {
-        description: "input tokens are empty".to_string(),
+        description: "Input tokens are empty".to_string(),
         unconsumed_tokens: tokens.to_owned(),
     })?;
     let (rest, math) = Math::parse(tokens, order_max, order_max)?;
     if !rest.is_empty() {
+        let err_message = |x, y| {
+            format!(
+                "Double {}: use bracket to clarify a group \
+                or change the number of spaces around \"{}\"",
+                x, y
+            )
+        };
         return Err(ParseError {
-            description: "some tokens are unconsumed".to_string(),
+            description: match rest {
+                [Token::Frac(_), ..] => err_message("\"/\"", "/"),
+                [Token::Root(_), ..] => err_message("\"_/\"", "_/"),
+                [Token::Over(_), ..] => err_message("over", "^^"),
+                [Token::Under(_), ..] => err_message("under", "__"),
+                [Token::Sup(_), ..] => err_message("exponent", "^"),
+                [Token::Sub(_), ..] => err_message("subscripts", "_"),
+                _ => "Some tokens are unconsumed".to_string(),
+            },
             unconsumed_tokens: rest.to_owned(),
         });
     }
@@ -329,7 +344,9 @@ impl Simple {
             tokens = match tokens {
                 [] => {
                     return Err(ParseError {
-                        description: "failed to parse Simple: tokens is empty".to_string(),
+                        description: "Failed to parse Simple: Missing symbol \
+                        or expression enclosed in brackets"
+                            .to_string(),
                         unconsumed_tokens: tokens.to_owned(),
                     })
                 }
@@ -362,13 +379,15 @@ impl Simple {
                             ))
                         }
                         _ => Err(ParseError {
-                            description: "failed to parse Simple".to_string(),
+                            description: "Failed to parse Simple: No closing bracket".to_string(),
                             unconsumed_tokens: tokens.to_owned(),
                         }),
                     }
                 }
                 _ => Err(ParseError {
-                    description: "failed to parse Simple".to_string(),
+                    description: "Failed to parse Simple: Missing symbol \
+                        or expression enclosed in brackets"
+                        .to_string(),
                     unconsumed_tokens: tokens.to_owned(),
                 }),
             }

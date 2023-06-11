@@ -71,7 +71,7 @@ fn App() -> Html {
                     match (&tex_code.data, &tex_code.error) {
                         (_, Some(error)) => {
                             html!{
-                                <div style="color: red;">
+                                <div style="color: red; white-space: pre-line;">
                                     {"error msg: "}{(*error).clone()}
                                 </div>
                             }
