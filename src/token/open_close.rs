@@ -48,8 +48,8 @@ pub fn take_close(s: &str) -> IResult<&str, Token> {
 
 fn tex_of_char_open(c: char) -> Result<String, ()> {
     Ok(match c {
+        '[' => "",
         '(' => "(",
-        '[' => ".",
         '{' => r"\{",
         '⟨' => r"\langle",
         '⌈' => r"\lceil",
@@ -63,8 +63,8 @@ fn tex_of_char_open(c: char) -> Result<String, ()> {
 
 fn tex_of_char_close(c: char) -> Result<String, ()> {
     Ok(match c {
+        ']' => "",
         ')' => ")",
-        ']' => ".",
         '}' => r"\}",
         '⟩' => r"\rangle",
         '⌉' => r"\rceil",
@@ -78,7 +78,7 @@ fn tex_of_char_close(c: char) -> Result<String, ()> {
 
 fn tex_of_ascii_art_open(s: &str) -> Result<String, ()> {
     Ok(match s {
-        "[" => "[",
+        "[[" => "[",
         "[<" => r"\langle",
         "[|" => r"\lvert",
         "[||" => r"\lVert",
@@ -97,7 +97,7 @@ fn tex_of_ascii_art_open(s: &str) -> Result<String, ()> {
 
 fn tex_of_ascii_art_close(s: &str) -> Result<String, ()> {
     Ok(match s {
-        "]" => "]",
+        "]]" => "]",
         ">]" => r"\rangle",
         "|]" => r"\rvert",
         "||]" => r"\rVert",

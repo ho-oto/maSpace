@@ -106,13 +106,13 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
                 match mode {
                     Mode::Normal => {
                         no_unicode_sub_sup.push(Token::Sub(0));
-                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Open("".to_string()));
                     }
                     Mode::Sub => {}
                     Mode::Sup => {
-                        no_unicode_sub_sup.push(Token::Close(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Close("".to_string()));
                         no_unicode_sub_sup.push(Token::Sub(0));
-                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Open("".to_string()));
                     }
                 };
                 no_unicode_sub_sup.push(*y);
@@ -122,12 +122,12 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
                 match mode {
                     Mode::Normal => {
                         no_unicode_sub_sup.push(Token::Sup(0));
-                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Open("".to_string()));
                     }
                     Mode::Sub => {
-                        no_unicode_sub_sup.push(Token::Close(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Close("".to_string()));
                         no_unicode_sub_sup.push(Token::Sup(0));
-                        no_unicode_sub_sup.push(Token::Open(".".to_string()));
+                        no_unicode_sub_sup.push(Token::Open("".to_string()));
                     }
                     Mode::Sup => {}
                 };
@@ -136,7 +136,7 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
             }
             _ => {
                 match mode {
-                    Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close(".".to_string())),
+                    Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close("".to_string())),
                     Mode::Normal => {}
                 }
                 no_unicode_sub_sup.push(x);
@@ -145,7 +145,7 @@ pub fn tokenize(s: &str) -> Result<Vec<Token>, TokenizeError> {
         };
     }
     match mode {
-        Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close(".".to_string())),
+        Mode::Sub | Mode::Sup => no_unicode_sub_sup.push(Token::Close("".to_string())),
         Mode::Normal => {}
     }
     // insert Cat(0) between adjacent symbol

@@ -70,7 +70,7 @@ mod tests {
             Token::UnicodeSub(Box::new(Token::Symbol(s.to_string())))
         }
         assert_eq!(x("₊123"), (r"123", y(r"+")));
-        assert_eq!(x("ᵨ123"), (r"123", y(r"\rho")));
+        assert_eq!(x("ᵨ123"), (r"123", y(r"\rho ")));
         assert_eq!(x("₍₎123"), (r"₎123", y(r"(")));
         assert_eq!(x("₎123"), (r"123", y(r")")));
     }
@@ -85,7 +85,7 @@ mod tests {
         }
         assert_eq!(x("⁼123"), (r"123", y(r"=")));
         assert_eq!(x("ᴳ123"), (r"123", y(r"G")));
-        assert_eq!(x("ᵡ123"), (r"123", y(r"\chi")));
+        assert_eq!(x("ᵡ123"), (r"123", y(r"\chi ")));
         assert_eq!(x("⁽⁾123"), (r"⁾123", y(r"(")));
         assert_eq!(x("⁾123"), (r"123", y(r")")));
     }

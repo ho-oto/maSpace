@@ -73,11 +73,23 @@ impl Math {
 impl Display for Math {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let Self(roots) = self;
-        write!(f, " ")?;
-        for root in roots {
-            write!(f, "{}", root)?;
+        if roots.is_empty() {
+            write!(f, "{{}}")?;
+            return Ok(());
         }
-        write!(f, " ")?;
+        for w in roots.windows(2) {
+            if w[1].to_string().starts_with(|c| match c {
+                'A'..='Z' | 'a'..='z' => true,
+                _ => false,
+            }) {
+                write!(f, "{}", w[0])?;
+            } else {
+                write!(f, "{}", w[0].to_string().trim_end_matches(' '))?;
+            }
+        }
+        if let Some(x) = roots.last() {
+            write!(f, "{}", x)?;
+        }
         Ok(())
     }
 }
@@ -114,7 +126,12 @@ impl Root {
 impl Display for Root {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Root { root, body } => write!(f, "\\sqrt[ {} ]{{ {} }}", root, body)?,
+            Self::Root { root, body } => write!(
+                f,
+                "\\sqrt[{}]{{{}}}",
+                root.to_string().trim_end_matches(' '),
+                body.to_string().trim_end_matches(' ')
+            )?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -153,7 +170,12 @@ impl Frac {
 impl Display for Frac {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Frac { nume, denom } => write!(f, "\\frac{{ {} }}{{ {} }}", nume, denom)?,
+            Self::Frac { nume, denom } => write!(
+                f,
+                "\\frac{{{}}}{{{}}}",
+                nume.to_string().trim_end_matches(' '),
+                denom.to_string().trim_end_matches(' ')
+            )?,
             Self::Math { body } => write!(f, "{}", body)?,
         }
         Ok(())
@@ -216,19 +238,31 @@ impl Display for Stack {
                 under: Some(under),
             } => write!(
                 f,
-                "\\underset{{ {} }}{{\\overset{{ {} }}{{ {} }}}}",
-                under, over, body
+                "\\underset{{{}}}{{\\overset{{{}}}{{{}}}}}",
+                under.to_string().trim_end_matches(' '),
+                over.to_string().trim_end_matches(' '),
+                body.to_string().trim_end_matches(' ')
             )?,
             Self {
                 body,
                 over: Some(over),
                 under: None,
-            } => write!(f, "\\overset{{ {} }}{{ {} }}", over, body)?,
+            } => write!(
+                f,
+                "\\overset{{{}}}{{{}}}",
+                over.to_string().trim_end_matches(' '),
+                body.to_string().trim_end_matches(' ')
+            )?,
             Self {
                 body,
                 over: None,
                 under: Some(under),
-            } => write!(f, "\\underset{{ {} }}{{ {} }}", under, body)?,
+            } => write!(
+                f,
+                "\\underset{{{}}}{{{}}}",
+                under.to_string().trim_end_matches(' '),
+                body.to_string().trim_end_matches(' ')
+            )?,
             Self {
                 body,
                 over: None,
@@ -293,22 +327,34 @@ impl Display for Inter {
                 body,
                 sup: Some(sup),
                 sub: Some(sub),
-            } => write!(f, "{{ {} }}^{{ {} }}_{{ {} }}", body, sup, sub)?,
+            } => {
+                write!(f, "{}", body.to_string().trim_end_matches(' '))?;
+                write!(f, "^{{{}}}", sup.to_string().trim_end_matches(' '))?;
+                write!(f, "_{{{}}}", sub.to_string().trim_end_matches(' '))?;
+            }
             Self {
                 body,
                 sup: Some(sup),
                 sub: None,
-            } => write!(f, "{{ {} }}^{{ {} }}", body, sup)?,
+            } => {
+                write!(f, "{}", body.to_string().trim_end_matches(' '))?;
+                write!(f, "^{{{}}}", sup.to_string().trim_end_matches(' '))?;
+            }
             Self {
                 body,
                 sup: None,
                 sub: Some(sub),
-            } => write!(f, "{{ {} }}_{{ {} }}", body, sub)?,
+            } => {
+                write!(f, "{}", body.to_string().trim_end_matches(' '))?;
+                write!(f, "_{{{}}}", sub.to_string().trim_end_matches(' '))?;
+            }
             Self {
                 body,
                 sup: None,
                 sub: None,
-            } => write!(f, "{}", body)?,
+            } => {
+                write!(f, "{}", body)?;
+            }
         }
         Ok(())
     }
@@ -405,10 +451,10 @@ impl Display for Simple {
             Self::UnaryParened { operators, .. } => operators,
             Self::UnarySymbol { operators, .. } => operators,
         };
-        let fmt_op = |x| {
-            let mut y = format!("{}", x);
+        let fmt_op = |x: String| {
+            let mut y = format!("{}", x.trim_end_matches(' '));
             for z in operators.iter().rev() {
-                y = format!("{}{{ {} }}", z, y);
+                y = format!("{}{{{}}}", z, y);
             }
             y
         };
@@ -416,16 +462,19 @@ impl Display for Simple {
             Self::UnaryExpr { body, .. } => write!(f, "{}", fmt_op(body.to_string()))?,
             Self::UnaryParened {
                 open, body, close, ..
-            } => write!(
-                f,
-                "{}",
-                fmt_op(format!("\\left{} {} \\right{}", open, body, close))
-            )?,
+            } => {
+                let (open, close) = match (open.as_str(), close.as_str()) {
+                    ("", "") => (format!(""), format!("")),
+                    ("", close) => (format!("\\left."), format!("\\right{}", close)),
+                    (open, "") => (format!("\\left{}", open), format!("\\right.")),
+                    (open, close) => (format!("\\left{}", open), format!("\\right{}", close)),
+                };
+                write!(f, "{}", open)?;
+                write!(f, "{}", body.to_string().trim_end_matches(' '))?;
+                write!(f, "{}", close)?;
+            }
             Self::UnarySymbol { operators, symbol } if operators.is_empty() => {
-                match symbol.chars().next() {
-                    Some('0'..='9' | '.') => write!(f, "{}", symbol)?,
-                    _ => write!(f, " {} ", symbol)?,
-                }
+                write!(f, "{}", symbol)?
             }
             Self::UnarySymbol { symbol, .. } => write!(f, "{}", fmt_op(symbol.to_string()))?,
         }
@@ -448,7 +497,7 @@ mod tests {
         ];
         assert_eq!(
             Math::parse(&x, 1, 1).unwrap().1.to_string(),
-            r" {   a   }_{  {  b  }_{  c  }  } ".to_string()
+            r"a_{b_{c}}".to_string()
         );
     }
 }

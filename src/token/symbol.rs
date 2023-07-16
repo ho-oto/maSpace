@@ -25,7 +25,13 @@ pub fn take_symbol(s: &str) -> IResult<&str, Token> {
             )),
             opt(is_a("'")),
         ),
-        |(tex, prime)| Token::Symbol(tex + prime.unwrap_or_default()),
+        |(tex, prime)| {
+            Token::Symbol(if let Some(prime) = prime {
+                format!("{}{}", tex.trim_end_matches(' '), prime)
+            } else {
+                tex
+            })
+        },
     )(s)
 }
 
@@ -36,7 +42,7 @@ fn take_symbol_from_single_char(s: &str) -> IResult<&str, String> {
         fold_many0(
             map_res(anychar, tex_of_unicode_accent),
             move || String::from(&tex),
-            |tex, accent| format!("{}{{ {} }}", accent, tex),
+            |tex, accent| format!("{}{{{}}}", accent, tex.trim_end_matches(' ')),
         )
     })(s)
 }
@@ -68,7 +74,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                 fold_many0(
                     map_res(anychar, tex_of_unicode_accent),
                     move || String::from(&tex),
-                    |tex, accent| format!("{}{{ {} }}", accent, tex),
+                    |tex, accent| format!("{}{{{}}}", accent, tex.trim_end_matches(' ')),
                 )
             },
         )(s)
@@ -105,7 +111,7 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                         tex_of_maybe_abbreviated_accent_name,
                     ),
                     move || String::from(&tex),
-                    |tex, accent| format!("{}{{ {} }}", accent, tex),
+                    |tex, accent| format!("{}{{{}}}", accent, tex.trim_end_matches(' ')),
                 ),
                 pair(many0(tag(" ")), tag(">")),
             )
@@ -154,10 +160,10 @@ fn tex_of_char(c: char) -> Result<String, ()> {
         c.to_string()
     }
     fn sym<T: Display>(s: T) -> String {
-        format!("\\{}", s)
+        format!("\\{} ", s)
     }
     fn cmb<T: Display>(op: &str, arg: T) -> String {
-        format!("\\{}{{ {} }}", op, arg)
+        format!("\\{}{{{}}}", op, arg)
     }
 
     Ok(match c {
@@ -585,75 +591,75 @@ fn tex_of_unicode_accent(c: char) -> Result<String, ()> {
 fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
     Ok(match s {
         // binop
-        "+-" => r"\pm",
-        "-+" => r"\mp",
-        "-:-" => r"\div",
-        "@" | "." => r"\cdot",
-        "-" => r"\bullet",
-        "o" | "O" => r"\circ",
-        "x" | "X" => r"\times",
-        "(x)" | "(X)" => r"\otimes",
-        "(+)" => r"\oplus",
-        "(.)" => r"\odot",
-        "^" => r"\wedge",
-        "V" | "v" => r"\vee",
-        "n" => r"\cap",
-        "U" | "u" => r"\cup",
+        "+-" => r"\pm ",
+        "-+" => r"\mp ",
+        "-:-" => r"\div ",
+        "@" | "." => r"\cdot ",
+        "-" => r"\bullet ",
+        "o" | "O" => r"\circ ",
+        "x" | "X" => r"\times ",
+        "(x)" | "(X)" => r"\otimes ",
+        "(+)" => r"\oplus ",
+        "(.)" => r"\odot ",
+        "^" => r"\wedge ",
+        "V" | "v" => r"\vee ",
+        "n" => r"\cap ",
+        "U" | "u" => r"\cup ",
         // rel
-        "!=" => r"\ne",
-        "-:" => r"\eqcolon",
-        "-::" => r"\Eqcolon",
-        "=:" => r"\eqqcolon",
-        "=::" => r"\Eqqcolon",
-        ":-" => r"\coloneq",
-        "::-" => r"\Coloneq",
-        ":=" => r"\coloneqq",
-        "::=" => r"\Coloneqq",
-        "-=" | "=-" => r"\equiv",
-        "-~" => r"\eqsim",
-        "~-" => r"\simeq",
-        "~=" => r"\cong",
-        "~~" => r"\approx",
-        "~~-" => r"\approxeq",
-        ":~" => r"\colonsim",
-        "::~" => r"\Colonsim",
-        "oc" => r"\propto",
-        "<" => r"\lt",
-        "<=" => r"\le",
-        ">" => r"\gt",
-        ">=" => r"\ge",
-        "<<" => r"\ll",
-        "<<<" => r"\lll",
-        ">>" => r"\gg",
-        ">>>" => r"\ggg",
-        "|-" => r"\vdash",
-        "||-" => r"\Vdash",
-        "|=" => r"\vDash",
-        "-|" => r"\dashv",
+        "!=" => r"\ne ",
+        "-:" => r"\eqcolon ",
+        "-::" => r"\Eqcolon ",
+        "=:" => r"\eqqcolon ",
+        "=::" => r"\Eqqcolon ",
+        ":-" => r"\coloneq ",
+        "::-" => r"\Coloneq ",
+        ":=" => r"\coloneqq ",
+        "::=" => r"\Coloneqq ",
+        "-=" | "=-" => r"\equiv ",
+        "-~" => r"\eqsim ",
+        "~-" => r"\simeq ",
+        "~=" => r"\cong ",
+        "~~" => r"\approx ",
+        "~~-" => r"\approxeq ",
+        ":~" => r"\colonsim ",
+        "::~" => r"\Colonsim ",
+        "oc" => r"\propto ",
+        "<" => r"\lt ",
+        "<=" => r"\le ",
+        ">" => r"\gt ",
+        ">=" => r"\ge ",
+        "<<" => r"\ll ",
+        "<<<" => r"\lll ",
+        ">>" => r"\gg ",
+        ">>>" => r"\ggg ",
+        "|-" => r"\vdash ",
+        "||-" => r"\Vdash ",
+        "|=" => r"\vDash ",
+        "-|" => r"\dashv ",
         // arrow
-        "-->" => r"\leftarrow",
-        "<--" => r"\rightarrow",
-        "==>" => r"\Rightarrow",
-        "<==" => r"\Leftarrow",
-        "<<-" => r"\twoheadleftarrow",
-        "->>" => r"\twoheadrightarrow",
-        "<-<" => r"\leftarrowtail",
-        ">->" => r"\rightarrowtail",
-        "|->" => r"\mapsto",
-        "<=>" => r"\Leftrightarrow",
-        "<->" => r"\leftrightarrow",
-        "~~>" => r"\rightsquigarrow",
-        "<~>" => r"\leftrightsquigarrow",
+        "-->" => r"\leftarrow ",
+        "<--" => r"\rightarrow ",
+        "==>" => r"\Rightarrow ",
+        "<==" => r"\Leftarrow ",
+        "<<-" => r"\twoheadleftarrow ",
+        "->>" => r"\twoheadrightarrow ",
+        "<-<" => r"\leftarrowtail ",
+        ">->" => r"\rightarrowtail ",
+        "|->" => r"\mapsto ",
+        "<=>" => r"\Leftrightarrow ",
+        "<->" => r"\leftrightarrow ",
+        "~~>" => r"\rightsquigarrow ",
+        "<~>" => r"\leftrightsquigarrow ",
         // symbol
-        "_|_" => r"\bot",
-        "T" => r"\top",
-        "h-" => r"\hbar",
-        "t" | "+" => r"\dagger",
-        "A" => r"\forall",
-        "E" => r"\exists",
-        "oo" => r"\infty",
-        "..." => r"\ldots",
-        "---" => r"\cdots",
+        "_|_" => r"\bot ",
+        "T" => r"\top ",
+        "h-" => r"\hbar ",
+        "t" | "+" => r"\dagger ",
+        "A" => r"\forall ",
+        "E" => r"\exists ",
+        "oo" => r"\infty ",
+        "..." => r"\ldots ",
+        "---" => r"\cdots ",
         "||" => r"\|",
         "[" => "[",
         "]" => "]",
@@ -668,7 +674,7 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
 
 fn tex_of_maybe_abbreviated_symbol_name(s: &str) -> String {
     match s {
-        _ => format!("\\{}", s),
+        _ => format!("\\{} ", s),
     }
 }
 
@@ -814,45 +820,33 @@ mod tests {
         assert_eq!(x("1.23"), (r".23", y(r"1")));
         assert_eq!(x("1'.23"), (r".23", y(r"1'")));
         assert_eq!(x("aΓ"), (r"Γ", y(r"a")));
-        assert_eq!(x("Γa"), ("a", y(r"\Gamma")));
-        assert_eq!(x("α̇bcd"), ("bcd", y(r"\dot{ \alpha }")));
+        assert_eq!(x("Γa"), ("a", y(r"\Gamma ")));
+        assert_eq!(x("α̇bcd"), ("bcd", y(r"\dot{\alpha}")));
         assert_eq!(x("<a>''"), ("", y("a''")));
-        assert_eq!(x("<a dot>'b"), ("b", y(r"\dot{ a }'")));
-        assert_eq!(x("< a  dot  >"), ("", y(r"\dot{ a }")));
-        assert_eq!(x("<  a dot>"), ("", y(r"\dot{ a }")));
-        assert_eq!(x("<a dot !>"), ("", y(r"\not{ \dot{ a } }")));
-        assert_eq!(x("`oo`"), ("", y(r"\infty")));
-        assert_eq!(x("`oo`23"), ("23", y(r"\infty")));
+        assert_eq!(x("<a dot>'b"), ("b", y(r"\dot{a}'")));
+        assert_eq!(x("< a  dot  >"), ("", y(r"\dot{a}")));
+        assert_eq!(x("<  a dot>"), ("", y(r"\dot{a}")));
+        assert_eq!(x("<a dot !>"), ("", y(r"\not{\dot{a}}")));
+        assert_eq!(x("`oo`"), ("", y(r"\infty ")));
+        assert_eq!(x("`oo`23"), ("23", y(r"\infty ")));
         assert_eq!(x("`oo`'23"), ("23", y(r"\infty'")));
         assert_eq!(x("0.1234ABC"), (".1234ABC", y("0")));
         assert_eq!(x("0A1B3C"), ("A1B3C", y("0")));
         assert_eq!(x("0 1 3"), (" 1 3", y("0")));
-        assert_eq!(x("<1.23 hat>"), ("", y(r"\hat{ 1.23 }")));
-        assert_eq!(
-            x("<α̇ tilde !>"),
-            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
-        );
-        assert_eq!(x("<α̇!>"), ("", y(r"\not{ \dot{ \alpha } }")));
-        assert_eq!(
-            x("<α̇! tilde>"),
-            ("", y(r"\tilde{ \not{ \dot{ \alpha } } }"))
-        );
-        assert_eq!(
-            x("< α̇ tilde ! >"),
-            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
-        );
-        assert_eq!(
-            x("<α̇  tilde !  >"),
-            ("", y(r"\not{ \tilde{ \dot{ \alpha } } }"))
-        );
-        assert_eq!(x("<`oo` !>"), ("", y(r"\not{ \infty }")));
-        assert_eq!(x("< `oo` !>"), ("", y(r"\not{ \infty }")));
-        assert_eq!(x("<`<` !>"), ("", y(r"\not{ \lt }")));
-        assert_eq!(x("<`<`^>"), ("", y(r"\hat{ \lt }")));
-        assert_eq!(x("<!!>"), ("", y(r"\not{ ! }")));
-        assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{ \infty }")));
-        assert_eq!(x("<alpha>"), ("", y(r"\alpha")));
-        assert_eq!(x("<alpha dot>"), ("", y(r"\dot{ \alpha }")));
+        assert_eq!(x("<1.23 hat>"), ("", y(r"\hat{1.23}")));
+        assert_eq!(x("<α̇ tilde !>"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<α̇!>"), ("", y(r"\not{\dot{\alpha}}")));
+        assert_eq!(x("<α̇! tilde>"), ("", y(r"\tilde{\not{\dot{\alpha}}}")));
+        assert_eq!(x("< α̇ tilde ! >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<α̇  tilde !  >"), ("", y(r"\not{\tilde{\dot{\alpha}}}")));
+        assert_eq!(x("<`oo` !>"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("< `oo` !>"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("<`<` !>"), ("", y(r"\not{\lt}")));
+        assert_eq!(x("<`<`^>"), ("", y(r"\hat{\lt}")));
+        assert_eq!(x("<!!>"), ("", y(r"\not{!}")));
+        assert_eq!(x("<   `oo` !  >"), ("", y(r"\not{\infty}")));
+        assert_eq!(x("<alpha>"), ("", y(r"\alpha ")));
+        assert_eq!(x("<alpha dot>"), ("", y(r"\dot{\alpha}")));
         assert_eq!(x(r#""aaa""#), ("", y(r"\mathrm{aaa}")));
         assert_eq!(x(r#"<"aaa">"#), ("", y(r#"\mathrm{aaa}"#)));
         assert_eq!(x(r#"< "aaa"  >"#), ("", y(r#"\mathrm{aaa}"#)));
