@@ -105,7 +105,10 @@ fn take_symbol_in_angle_brackets(s: &str) -> IResult<&str, String> {
                 fold_many0(
                     map(
                         alt((
-                            preceded(many0(tag(" ")), alt((tag("!"), tag("^")))),
+                            preceded(
+                                many0(tag(" ")),
+                                alt((tag("!"), tag("^"), tag("~"), tag("-"))),
+                            ),
                             preceded(many1(tag(" ")), alphanumeric1),
                         )),
                         tex_of_maybe_abbreviated_accent_name,
@@ -721,6 +724,13 @@ fn tex_of_maybe_abbreviated_accent_name(s: &str) -> String {
     match s {
         "!" => r"\not".to_string(),
         "^" => r"\hat".to_string(),
+        "~" => r"\tilde".to_string(),
+        "-" => r"\bar".to_string(),
+        "d" => r"\dot".to_string(),
+        "dd" => r"\ddot".to_string(),
+        "ddd" => r"\dddot".to_string(),
+        "v" | "va" => r"\vec".to_string(),
+        "vb" => r"\mathbf".to_string(),
         "bb" => r"\mathbb".to_string(),
         "b" | "bf" => r"\mathbf".to_string(),
         "c" | "cc" | "ca" | "cal" => r"\mathcal".to_string(),
