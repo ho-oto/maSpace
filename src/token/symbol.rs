@@ -640,8 +640,8 @@ fn tex_of_ascii_art(s: &str) -> Result<String, ()> {
         "|=" => r"\vDash ",
         "-|" => r"\dashv ",
         // arrow
-        "-->" => r"\leftarrow ",
-        "<--" => r"\rightarrow ",
+        "-->" => r"\rightarrow ",
+        "<--" => r"\leftarrow ",
         "==>" => r"\Rightarrow ",
         "<==" => r"\Leftarrow ",
         "<<-" => r"\twoheadleftarrow ",
