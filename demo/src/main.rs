@@ -54,6 +54,7 @@ fn App() -> Html {
             <div>
                 <textarea
                     style="width: 100%; box-sizing: border-box;"
+                    aria-label="Input"
                     value={value.to_string()}
                     oninput={on_input}/>
             </div>

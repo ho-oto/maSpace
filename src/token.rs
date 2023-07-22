@@ -1,5 +1,5 @@
 pub mod binop;
-pub mod open_close;
+pub mod grouping;
 pub mod symbol;
 pub mod unaryop;
 pub mod unicode_subsup;
@@ -12,7 +12,7 @@ use nom::sequence::{preceded, terminated};
 use unicode_normalization::UnicodeNormalization;
 
 use binop::take_binop;
-use open_close::{take_close, take_open};
+use grouping::{take_close, take_open};
 use symbol::take_symbol;
 use unaryop::take_op;
 use unicode_subsup::{take_unicode_sub, take_unicode_sup};
