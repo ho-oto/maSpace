@@ -452,6 +452,9 @@ impl Display for Simple {
             Self::UnarySymbol { operators, .. } => operators,
         };
         let fmt_op = |x: String| {
+            if operators.is_empty() {
+                return x;
+            }
             let mut y = format!("{}", x.trim_end_matches(' '));
             for z in operators.iter().rev() {
                 y = format!("{}{{{}}}", z, y);
